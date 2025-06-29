@@ -30,6 +30,11 @@ while True:
         print("✅ 모든 페이지 로드 완료")
         break
 
+    # 예시: 어떤 품목명이 있는지 먼저 확인해보기
+    print(set([row.get("품목명") for row in rows]))
+    quit()
+
+
     for jd in rows:
         PRCE_REG_YMD = jd.get('가격등록일자', '')
         MRKT_NM = jd.get('시장', '')
@@ -38,7 +43,7 @@ while True:
         BULK_GRAD_NM = jd.get('산물등급명', '')
         PDLT_PRCE = jd.get('품목가격', '')
 
-        if MRKT_NM == '대인' and CTNP_NM == '광주' and PDLT_NM in ['양파', '깐마늘(국산)', '딸기', '복숭아']:
+        if MRKT_NM == '대인' and CTNP_NM == '광주' and PDLT_NM in ['양파', '깐마늘', '딸기', '복숭아']:
             data.append({
                 '날짜': PRCE_REG_YMD,
                 '시장명': MRKT_NM,
