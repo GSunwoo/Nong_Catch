@@ -28,12 +28,6 @@ while True:
     rows = json_data.get('data', [])
     if not rows:
         print("✅ 모든 페이지 로드 완료")
-        break
-
-    # 예시: 어떤 품목명이 있는지 먼저 확인해보기
-    print(set([row.get("품목명") for row in rows]))
-    quit()
-
 
     for jd in rows:
         PRCE_REG_YMD = jd.get('가격등록일자', '')
@@ -63,7 +57,7 @@ print(df.head())
 
 # ✅ 엑셀 저장 (선택)
 # df.to_excel("가격데이터 1차가공.xlsx", index=False)
-df.to_csv("가격데이터 1차가공.csv", index=False)
+df.to_csv("../saveFiles/가격데이터 1차가공.csv", index=False)
 print("✅ 엑셀 저장 완료")
 
 

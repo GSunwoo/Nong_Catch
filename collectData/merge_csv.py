@@ -3,7 +3,7 @@ import glob
 import os
 
 # CSV 파일들이 있는 폴더 경로
-folder_path = './resData/'
+folder_path = '../resData/'
 
 # 폴더 내의 모든 CSV 파일 경로 가져오기
 csv_files = glob.glob(os.path.join(folder_path, '*.csv'))
@@ -23,6 +23,6 @@ merged_df = pd.concat(df_list, ignore_index=True)
 merged_df = merged_df.sort_values(by='PRCE_REG_YMD')
 
 # CSV 파일로 저장
-merged_df.to_csv('./merged_data.csv', index=False)
+merged_df.to_csv('../saveFiles/merged_data.csv', index=False)
 
 print('데이터 합치기 완료!')
