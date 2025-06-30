@@ -14,7 +14,7 @@ while True:
         Type='json',
         # 사이즈를 300으로 만들겠다는 말
         perPage='1000',
-        serviceKey='HPejTqVwe9kyYAnBfOcmUHkDiOpOAGdEAFUtLOxITKS4Sfi/HJVfxPX4yiwCFGuhO6zSN5vfcG7+9LdrKj9bEg==')
+        serviceKey='API_KEY')
     # JSON 데이터 읽어오기
     raw_data = requests.get(url=url, params=params)
     binary_data = raw_data.content

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>농산물 가격-생산량 시각화</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .file-upload {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .file-input {
+            margin: 10px;
+            padding: 10px;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .file-input input[type="file"] {
+            padding: 10px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .year-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .year-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .year-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .year-btn:active {
+            transform: translateY(0);
+        }
+
+        .year-display {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+            min-width: 100px;
+            text-align: center;
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .crop-selector {
+            margin-left: 30px;
+        }
+
+        .crop-selector select {
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .crop-selector select:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .chart-wrapper:hover {
+            transform: translateY(-5px);
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .correlation-chart {
+            grid-column: 1 / -1;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .crop-selector {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🌾 농산물 가격-생산량 분석 대시보드</h1>
+        </div>
+
+        <div class="file-upload">
+            <h3>CSV 파일 업로드</h3>
+            <div class="file-input">
+                <label>양파: <input type="file" id="onionFile" accept=".csv"></label>
+            </div>
+            <div class="file-input">
+                <label>딸기: <input type="file" id="strawberryFile" accept=".csv"></label>
+            </div>
+            <div class="file-input">
+                <label>마늘: <input type="file" id="garlicFile" accept=".csv"></label>
+            </div>
+            <div class="file-input">
+                <label>복숭아: <input type="file" id="peachFile" accept=".csv"></label>
+            </div>
+            <div id="loadingStatus" class="loading" style="display: none;">데이터 로딩 중...</div>
+        </div>
+
+        <div class="controls">
+            <div class="year-control">
+                <button class="year-btn" id="prevYear">◀ 이전</button>
+                <div class="year-display" id="yearDisplay">2023</div>
+                <button class="year-btn" id="nextYear">다음 ▶</button>
+            </div>
+
+            <div class="crop-selector">
+                <select id="cropSelect">
+                    <option value="양파">🧅 양파</option>
+                    <option value="딸기">🍓 딸기</option>
+                    <option value="마늘">🧄 마늘</option>
+                    <option value="복숭아">🍑 복숭아</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-title">월별 가격 변화</div>
+                <canvas id="priceChart"></canvas>
+            </div>
+
+            <div class="chart-wrapper">
+                <div class="chart-title">월별 생산량 변화</div>
+                <canvas id="productionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="correlation-chart">
+            <div class="chart-title">가격 vs 생산량 상관관계</div>
+            <canvas id="correlationChart"></canvas>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value" id="avgPrice">-</div>
+                <div class="stat-label">평균 가격 (원/kg)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgProduction">-</div>
+                <div class="stat-label">평균 생산량 (톤)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="correlation">-</div>
+                <div class="stat-label">가격-생산량 상관계수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="peakMonth">-</div>
+                <div class="stat-label">최고가 월</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 실제 데이터를 저장할 객체
+        let cropData = {};
+        let currentYear = 2023;
+        let currentCrop = '양파';
+        let availableYears = [];
+
+        const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+        // 차트 객체들
+        let priceChart, productionChart, correlationChart;
+
+        // CSV 파일 매핑
+        const fileMapping = {
+            '양파': 'onionFile',
+            '딸기': 'strawberryFile',
+            '마늘': 'garlicFile',
+            '복숭아': 'peachFile'
+        };
+
+        // CSV 파일 읽기 함수
+        const loadCSVFile = (file, cropName) => {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true,
+                    encoding: 'UTF-8',
+                    complete: function(results) {
+                        console.log(`${cropName} 데이터 로드 완료:`, results.data.length, '행');
+                        resolve({ cropName, data: results.data });
+                    },
+                    error: function(error) {
+                        console.error(`${cropName} 파일 읽기 오류:`, error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        // 데이터 처리 함수
+        const processData = (rawData) => {
+            const processed = {};
+
+            rawData.forEach(({ cropName, data }) => {
+                processed[cropName] = {};
+
+                data.forEach(row => {
+                    // 날짜 파싱 (여러 형식 지원)
+                    let date;
+                    if (row['날짜']) {
+                        date = new Date(row['날짜']);
+                    } else if (row['date']) {
+                        date = new Date(row['date']);
+                    } else {
+                        return; // 날짜가 없으면 스킵
+                    }
+
+                    if (isNaN(date.getTime())) return; // 유효하지 않은 날짜 스킵
+
+                    const year = date.getFullYear();
+                    const month = date.getMonth() + 1;
+
+                    // 가격과 생산량 데이터 추출
+                    const price = parseFloat(row['가격'] || row['price'] || 0);
+                    const production = parseFloat(row['생산량'] || row['production'] || 0);
+
+                    if (!processed[cropName][year]) {
+                        processed[cropName][year] = {
+                            prices: new Array(12).fill(0),
+                            production: new Array(12).fill(0),
+                            counts: new Array(12).fill(0)
+                        };
+                    }
+
+                    // 월별 데이터 누적 (평균 계산을 위해)
+                    processed[cropName][year].prices[month - 1] += price;
+                    processed[cropName][year].production[month - 1] += production;
+                    processed[cropName][year].counts[month - 1]++;
+                });
+
+                // 평균 계산
+                Object.keys(processed[cropName]).forEach(year => {
+                    const yearData = processed[cropName][year];
+                    for (let i = 0; i < 12; i++) {
+                        if (yearData.counts[i] > 0) {
+                            yearData.prices[i] /= yearData.counts[i];
+                            yearData.production[i] /= yearData.counts[i];
+                        }
+                    }
+                    delete yearData.counts; // 더 이상 필요없음
+                });
+            });
+
+            return processed;
+        };
+
+        // 파일 업로드 이벤트 리스너 설정
+        const setupFileUploaders = () => {
+            Object.entries(fileMapping).forEach(([cropName, fileInputId]) => {
+                document.getElementById(fileInputId).addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            document.getElementById('loadingStatus').style.display = 'block';
+                            const result = await loadCSVFile(file, cropName);
+
+                            // 개별 작물 데이터 처리
+                            const processedData = processData([result]);
+
+                            // 기존 데이터에 병합
+                            cropData = { ...cropData, ...processedData };
+
+                            // 사용 가능한 연도 업데이트
+                            updateAvailableYears();
+
+                            // 첫 번째 데이터 로드시 차트 초기화
+                            if (Object.keys(cropData).length === 1) {
+                                initCharts();
+                            }
+
+                            // 현재 작물이 로드된 경우 차트 업데이트
+                            if (cropName === currentCrop) {
+                                updateCharts();
+                            }
+
+                            console.log(`${cropName} 데이터 처리 완료`);
+
+                        } catch (error) {
+                            console.error(`${cropName} 파일 처리 오류:`, error);
+                            alert(`${cropName} 파일을 처리하는 중 오류가 발생했습니다.`);
+                        } finally {
+                            document.getElementById('loadingStatus').style.display = 'none';
+                        }
+                    }
+                });
+            });
+        };
+
+        // 사용 가능한 연도 업데이트
+        const updateAvailableYears = () => {
+            const years = new Set();
+            Object.values(cropData).forEach(crop => {
+                Object.keys(crop).forEach(year => years.add(parseInt(year)));
+            });
+            availableYears = Array.from(years).sort();
+
+            if (availableYears.length > 0) {
+                currentYear = Math.max(...availableYears);
+                document.getElementById('yearDisplay').textContent = currentYear;
+            }
+        };
+
+        // 차트 초기화
+        const initCharts = () => {
+            // 가격 차트
+            const priceCtx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(priceCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: '가격 (원/kg)',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 생산량 차트
+            const productionCtx = document.getElementById('productionChart').getContext('2d');
+            productionChart = new Chart(productionCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: '생산량 (톤)',
+                        data: [],
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                        borderColor: '#764ba2',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 상관관계 차트
+            const correlationCtx = document.getElementById('correlationChart').getContext('2d');
+            correlationChart = new Chart(correlationCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '가격 vs 생산량',
+                        data: [],
+                        backgroundColor: 'rgba(240, 147, 251, 0.8)',
+                        borderColor: '#f093fb',
+                        borderWidth: 2,
+                        pointRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '생산량 (톤)'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '가격 (원/kg)'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        // 데이터 업데이트
+        const updateCharts = () => {
+            if (!cropData[currentCrop] || !cropData[currentCrop][currentYear]) {
+                console.log('데이터가 없습니다:', currentCrop, currentYear);
+                return;
+            }
+
+            const data = cropData[currentCrop][currentYear];
+
+            // 가격 차트 업데이트
+            priceChart.data.datasets[0].data = data.prices;
+            priceChart.update('active');
+
+            // 생산량 차트 업데이트
+            productionChart.data.datasets[0].data = data.production;
+            productionChart.update('active');
+
+            // 상관관계 차트 업데이트
+            const correlationData = data.prices.map((price, index) => ({
+                x: data.production[index],
+                y: price
+            })).filter(point => point.x > 0 && point.y > 0); // 0값 제외
+
+            correlationChart.data.datasets[0].data = correlationData;
+            correlationChart.update('active');
+
+            // 통계 업데이트
+            updateStats(data);
+        };
+
+        // 통계 업데이트
+        const updateStats = (data) => {
+            const validPrices = data.prices.filter(p => p > 0);
+            const validProduction = data.production.filter(p => p > 0);
+
+            if (validPrices.length === 0 || validProduction.length === 0) {
+                document.getElementById('avgPrice').textContent = '-';
+                document.getElementById('avgProduction').textContent = '-';
+                document.getElementById('correlation').textContent = '-';
+                document.getElementById('peakMonth').textContent = '-';
+                return;
+            }
+
+            const avgPrice = (validPrices.reduce((a, b) => a + b, 0) / validPrices.length).toFixed(0);
+            const avgProduction = (validProduction.reduce((a, b) => a + b, 0) / validProduction.length).toFixed(0);
+
+            // 상관계수 계산
+            const correlation = calculateCorrelation(data.prices, data.production);
+
+            // 최고가 월
+            const maxPrice = Math.max(...data.prices);
+            const maxPriceIndex = data.prices.indexOf(maxPrice);
+            const peakMonth = months[maxPriceIndex];
+
+            document.getElementById('avgPrice').textContent = Number(avgPrice).toLocaleString();
+            document.getElementById('avgProduction').textContent = Number(avgProduction).toLocaleString();
+            document.getElementById('correlation').textContent = isNaN(correlation) ? '-' : correlation.toFixed(3);
+            document.getElementById('peakMonth').textContent = peakMonth;
+        };
+
+        // 상관계수 계산
+        const calculateCorrelation = (x, y) => {
+            // 0이 아닌 값들만 필터링
+            const validPairs = x.map((xi, i) => [xi, y[i]]).filter(([xi, yi]) => xi > 0 && yi > 0);
+
+            if (validPairs.length < 2) return 0;
+
+            const validX = validPairs.map(pair => pair[0]);
+            const validY = validPairs.map(pair => pair[1]);
+
+            const n = validX.length;
+            const sumX = validX.reduce((a, b) => a + b, 0);
+            const sumY = validY.reduce((a, b) => a + b, 0);
+            const sumXY = validX.reduce((acc, xi, i) => acc + xi * validY[i], 0);
+            const sumX2 = validX.reduce((acc, xi) => acc + xi * xi, 0);
+            const sumY2 = validY.reduce((acc, yi) => acc + yi * yi, 0);
+
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+            return denominator === 0 ? 0 : numerator / denominator;
+        };
+
+        // 이벤트 리스너
+        document.getElementById('prevYear').addEventListener('click', () => {
+            const currentIndex = availableYears.indexOf(currentYear);
+            if (currentIndex > 0) {
+                currentYear = availableYears[currentIndex - 1];
+                document.getElementById('yearDisplay').textContent = currentYear;
+                updateCharts();
+            }
+        });
+
+        document.getElementById('nextYear').addEventListener('click', () => {
+            const currentIndex = availableYears.indexOf(currentYear);
+            if (currentIndex < availableYears.length - 1) {
+                currentYear = availableYears[currentIndex + 1];
+                document.getElementById('yearDisplay').textContent = currentYear;
+                updateCharts();
+            }
+        });
+
+        document.getElementById('cropSelect').addEventListener('change', (e) => {
+            currentCrop = e.target.value;
+            if (cropData[currentCrop]) {
+                updateCharts();
+            }
+        });
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFileUploaders();
+        });
+    </script>
+</body>
+</html>
