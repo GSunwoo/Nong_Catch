@@ -40,13 +40,19 @@ df_gal['생산량'] = df_gal['날짜_6개월후'].map(after_day['마늘'])
 df_str['생산량'] = df_str['날짜_2개월후'].map(after_day['딸기'])
 df_pec['생산량'] = df_pec['날짜_2개월후'].map(after_day['복숭아'])
 
+# n개월 후 컬럼 삭제
+df_oni = df_oni.drop(['날짜_8개월후'], axis=1)
+df_gal = df_gal.drop(['날짜_6개월후'], axis=1)
+df_str = df_str.drop(['날짜_2개월후'], axis=1)
+df_pec = df_pec.drop(['날짜_2개월후'], axis=1)
+
 # CSV 파일로 전환
 df_oni.to_csv('./data/날씨-생산량-양파.csv')
 df_gal.to_csv('./data/날씨-생산량-마늘.csv')
 df_str.to_csv('./data/날씨-생산량-딸기.csv')
 df_pec.to_csv('./data/날씨-생산량-복숭아.csv')
 
-# print(df_oni.iloc[2000:2010])
-# print(df_gal.iloc[2000:2010])
-# print(df_str.iloc[2000:2010])
-# print(df_pec.iloc[2000:2010])
+print(df_oni.iloc[2000:2010])
+print(df_gal.iloc[2000:2010])
+print(df_str.iloc[2000:2010])
+print(df_pec.iloc[2000:2010])
