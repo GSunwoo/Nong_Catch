@@ -48,4 +48,4 @@ while True:
 df = pd.DataFrame(agg)
 
 # 데이터프레임을 csv파일로 저장
-df.to_csv("./saveFiles/harvestdata.csv")
+df.to_csv("../saveFiles/harvestdata.csv")
