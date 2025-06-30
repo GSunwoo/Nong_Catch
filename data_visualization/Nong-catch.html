@@ -3,176 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>농산물 가격-생산량 시각화</title>
+    <title>농산물 가격-생산량 분석 대시보드</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
+            background: white;
             border-radius: 20px;
-            padding: 30px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
             text-align: center;
-            margin-bottom: 30px;
         }
 
         .title {
             font-size: 2.5em;
-            color: #333;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .file-upload {
+        .data-status {
+            padding: 30px;
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .file-input {
-            margin: 10px;
-            padding: 10px;
-            border: 2px dashed #667eea;
-            border-radius: 10px;
-            display: inline-block;
-        }
-
-        .file-input input[type="file"] {
-            padding: 10px;
-            border: none;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .data-status h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .loading {
+            color: #007bff;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .error {
+            color: #dc3545;
+            font-weight: 600;
+            font-size: 1.1em;
         }
 
         .controls {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            gap: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
         }
 
         .year-control {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .year-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 10px 20px;
             border-radius: 25px;
-            font-size: 16px;
             cursor: pointer;
+            font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-size: 14px;
         }
 
         .year-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .year-btn:active {
-            transform: translateY(0);
+        .year-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .year-display {
-            font-size: 1.8em;
-            font-weight: bold;
+            font-size: 1.5em;
+            font-weight: 700;
             color: #333;
-            min-width: 100px;
+            min-width: 80px;
             text-align: center;
-            padding: 10px 20px;
-            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .crop-selector {
-            margin-left: 30px;
         }
 
         .crop-selector select {
-            padding: 12px 20px;
-            border: 2px solid #667eea;
-            border-radius: 25px;
-            font-size: 16px;
             background: white;
+            border: 2px solid #e9ecef;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
             cursor: pointer;
-            outline: none;
-            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 150px;
         }
 
         .crop-selector select:focus {
-            border-color: #764ba2;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
         .charts-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
-            margin-bottom: 30px;
+            padding: 30px;
         }
 
         .chart-wrapper {
             background: white;
-            padding: 20px;
             border-radius: 15px;
+            padding: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-
-        .chart-wrapper:hover {
-            transform: translateY(-5px);
+            border: 1px solid #f0f0f0;
         }
 
         .chart-title {
-            text-align: center;
             font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
             color: #333;
-            margin-bottom: 15px;
-            font-weight: bold;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .correlation-chart {
+            margin: 0 30px 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #f0f0f0;
         }
 
         .stats-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
+            background: white;
+            padding: 25px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid #f0f0f0;
             transition: transform 0.3s ease;
         }
 
@@ -182,29 +203,19 @@
 
         .stat-value {
             font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
         }
 
         .stat-label {
-            font-size: 1.1em;
-            opacity: 0.9;
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 600;
         }
 
-        .correlation-chart {
-            grid-column: 1 / -1;
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            font-size: 1.2em;
-            color: #667eea;
+        canvas {
+            max-height: 300px;
         }
 
         @media (max-width: 768px) {
@@ -214,11 +225,11 @@
 
             .controls {
                 flex-direction: column;
-                gap: 15px;
+                gap: 20px;
             }
 
-            .crop-selector {
-                margin-left: 0;
+            .stats-container {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
         }
     </style>
@@ -229,21 +240,9 @@
             <h1 class="title">🌾 농산물 가격-생산량 분석 대시보드</h1>
         </div>
 
-        <div class="file-upload">
-            <h3>CSV 파일 업로드</h3>
-            <div class="file-input">
-                <label>양파: <input type="file" id="onionFile" accept=".csv"></label>
-            </div>
-            <div class="file-input">
-                <label>딸기: <input type="file" id="strawberryFile" accept=".csv"></label>
-            </div>
-            <div class="file-input">
-                <label>마늘: <input type="file" id="garlicFile" accept=".csv"></label>
-            </div>
-            <div class="file-input">
-                <label>복숭아: <input type="file" id="peachFile" accept=".csv"></label>
-            </div>
-            <div id="loadingStatus" class="loading" style="display: none;">데이터 로딩 중...</div>
+        <div class="data-status">
+            <h3>데이터 로딩 상태</h3>
+            <div id="loadingStatus" class="loading">데이터를 불러오는 중...</div>
         </div>
 
         <div class="controls">
@@ -312,30 +311,78 @@
         // 차트 객체들
         let priceChart, productionChart, correlationChart;
 
-        // CSV 파일 매핑
-        const fileMapping = {
-            '양파': 'onionFile',
-            '딸기': 'strawberryFile',
-            '마늘': 'garlicFile',
-            '복숭아': 'peachFile'
+        // 품목별 파일 경로
+        const cropFiles = {
+            '양파': '../training/data/양파_생산량_가격_데이터.csv',
+            '딸기': '../training/data/딸기_생산량_가격_데이터.csv',
+            '마늘': '../training/data/마늘_생산량_가격_데이터.csv',
+            '복숭아': '../training/data/복숭아_생산량_가격_데이터.csv'
         };
 
-        // CSV 파일 읽기 함수
-        const loadCSVFile = (file, cropName) => {
-            return new Promise((resolve, reject) => {
-                Papa.parse(file, {
-                    header: true,
-                    encoding: 'UTF-8',
-                    complete: function(results) {
-                        console.log(`${cropName} 데이터 로드 완료:`, results.data.length, '행');
-                        resolve({ cropName, data: results.data });
-                    },
-                    error: function(error) {
-                        console.error(`${cropName} 파일 읽기 오류:`, error);
-                        reject(error);
-                    }
+        // CSV 파일 로드 함수
+        const loadCSVFromPath = async (filePath, cropName) => {
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const csvText = await response.text();
+
+                return new Promise((resolve, reject) => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        encoding: 'UTF-8',
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            console.log(`${cropName} 데이터 로드 완료:`, results.data.length, '행');
+                            resolve({ cropName, data: results.data });
+                        },
+                        error: function(error) {
+                            console.error(`${cropName} 파일 파싱 오류:`, error);
+                            reject(error);
+                        }
+                    });
                 });
-            });
+            } catch (error) {
+                console.error(`${cropName} 파일 로드 오류:`, error);
+                throw error;
+            }
+        };
+
+        // 모든 CSV 파일 로드
+        const loadAllData = async () => {
+            const statusElement = document.getElementById('loadingStatus');
+            statusElement.textContent = '데이터를 불러오는 중...';
+            statusElement.className = 'loading';
+
+            try {
+                const loadPromises = Object.entries(cropFiles).map(([cropName, filePath]) =>
+                    loadCSVFromPath(filePath, cropName)
+                );
+
+                const results = await Promise.all(loadPromises);
+
+                // 데이터 처리
+                const processedData = processData(results);
+                cropData = processedData;
+
+                // 사용 가능한 연도 업데이트
+                updateAvailableYears();
+
+                // 차트 초기화 및 업데이트
+                initCharts();
+                updateCharts();
+
+                statusElement.textContent = '모든 데이터가 성공적으로 로드되었습니다!';
+                statusElement.className = 'success';
+
+                console.log('모든 데이터 로드 완료:', Object.keys(cropData));
+
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                statusElement.textContent = `데이터 로드 실패: ${error.message}`;
+                statusElement.className = 'error';
+            }
         };
 
         // 데이터 처리 함수
@@ -393,48 +440,6 @@
             });
 
             return processed;
-        };
-
-        // 파일 업로드 이벤트 리스너 설정
-        const setupFileUploaders = () => {
-            Object.entries(fileMapping).forEach(([cropName, fileInputId]) => {
-                document.getElementById(fileInputId).addEventListener('change', async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        try {
-                            document.getElementById('loadingStatus').style.display = 'block';
-                            const result = await loadCSVFile(file, cropName);
-
-                            // 개별 작물 데이터 처리
-                            const processedData = processData([result]);
-
-                            // 기존 데이터에 병합
-                            cropData = { ...cropData, ...processedData };
-
-                            // 사용 가능한 연도 업데이트
-                            updateAvailableYears();
-
-                            // 첫 번째 데이터 로드시 차트 초기화
-                            if (Object.keys(cropData).length === 1) {
-                                initCharts();
-                            }
-
-                            // 현재 작물이 로드된 경우 차트 업데이트
-                            if (cropName === currentCrop) {
-                                updateCharts();
-                            }
-
-                            console.log(`${cropName} 데이터 처리 완료`);
-
-                        } catch (error) {
-                            console.error(`${cropName} 파일 처리 오류:`, error);
-                            alert(`${cropName} 파일을 처리하는 중 오류가 발생했습니다.`);
-                        } finally {
-                            document.getElementById('loadingStatus').style.display = 'none';
-                        }
-                    }
-                });
-            });
         };
 
         // 사용 가능한 연도 업데이트
@@ -688,9 +693,9 @@
             }
         });
 
-        // 초기화
+        // 페이지 로드 시 데이터 자동 로드
         document.addEventListener('DOMContentLoaded', () => {
-            setupFileUploaders();
+            loadAllData();
         });
     </script>
 </body>
