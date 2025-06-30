@@ -20,6 +20,11 @@ df_straw.set_index('날짜', inplace=True)
 df_peach.set_index('날짜', inplace=True)
 df_onion.set_index('날짜', inplace=True)
 
+df_straw = df_straw.rename(columns={'딸기': '가격'})
+df_peach = df_peach.rename(columns={'복숭아' : '가격'})
+df_onion = df_onion.rename(columns={'양파' : '가격'})
+df_garlic = df_garlic.rename(columns={'깐마늘(국산)' : '가격'})
+
 # 5) 확인
 print("딸기 데이터:", df_straw.head())
 print("복숭아 데이터:", df_peach.head())  # 복숭아는 비어있을 수도 있음
