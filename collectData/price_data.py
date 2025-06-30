@@ -1,63 +1,64 @@
-import requests
-import json
 import pandas as pd
+import glob
+import os
 
-url = 'https://api.odcloud.kr/api/15072357/v1/uddi:bb1ac3a7-84e3-4fc0-b3f2-bc22f1d7964b'
+# CSV 파일들이 있는 폴더 경로
+folder_path = 'C:/Users/kosmo/Downloads/새 폴더 (2)'
 
-page = 1
-data = []  # ✅ 전체 데이터 저장용 리스트
+# 해당 폴더의 모든 CSV 파일 경로를 가져오기
+file_list = glob.glob(os.path.join(folder_path, '*.csv'))
 
-while True:
-    params = dict(
-        page=page,
-        perPage=1000,
-        serviceKey='K8fiPYPNvfZolnzG684+FWyGua6JLhEmM2mgfRqqMbHvgb3vzXEIl3mZqFzBJtsmptxYN++AblYOUtOPVewccA=='
-    )
-    response = requests.get(url=url, params=params)
+df_list = []
 
-    if response.status_code != 200:
-        print(f"❌ 요청 실패 (status: {response.status_code})")
-        break
-
+# 파일 하나씩 읽어서 리스트에 저장 (인코딩 문제 대비)
+for file in file_list:
     try:
-        json_data = response.json()
-    except json.JSONDecodeError:
-        print("❌ JSON 디코딩 실패")
-        break
+        df = pd.read_csv(file, encoding='cp949', low_memory=False)  # 윈도우 한글 인코딩 시도
+    except UnicodeDecodeError:
+        df = pd.read_csv(file, encoding='utf-8')  # 실패 시 utf-8로 재시도
+    df_list.append(df)
 
-    rows = json_data.get('data', [])
-    if not rows:
-        print("✅ 모든 페이지 로드 완료")
+# 데이터프레임 하나로 합치기
+merged_df = pd.concat(df_list, ignore_index=True)
 
-    for jd in rows:
-        PRCE_REG_YMD = jd.get('가격등록일자', '')
-        MRKT_NM = jd.get('시장', '')
-        CTNP_NM = jd.get('시도명', '')
-        PDLT_NM = jd.get('품목명', '')
-        BULK_GRAD_NM = jd.get('산물등급명', '')
-        PDLT_PRCE = jd.get('품목가격', '')
+data = []
 
-        if MRKT_NM == '대인' and CTNP_NM == '광주' and PDLT_NM in ['양파', '깐마늘', '딸기', '복숭아']:
-            data.append({
-                '날짜': PRCE_REG_YMD,
-                '시장명': MRKT_NM,
-                '시도명': CTNP_NM,
-                '품목명': PDLT_NM,
-                '산물등급': BULK_GRAD_NM,
-                '가격': PDLT_PRCE
-            })
+# 각 행을 딕셔너리 형태로 순회
+for jd in merged_df.to_dict('records'):
+    PRCE_REG_YMD = jd.get('PRCE_REG_YMD', '')
+    CTNP_NM = jd.get('CTNP_NM', '')
+    PDLT_NM = jd.get('PDLT_NM', '')
+    EXMN_SE_NM = jd.get('EXMN_SE_NM', '')
+    BULK_GRAD_NM = jd.get('BULK_GRAD_NM', '')
+    PDLT_PRCE = jd.get('PDLT_PRCE', '')
 
-    print(f"📄 페이지 {page} 처리 완료 (누적 {len(data)}건)")
-    page += 1
+    if EXMN_SE_NM == '소매' and CTNP_NM == '광주' and BULK_GRAD_NM == '상품' and PDLT_NM in ['양파', '깐마늘(국산)', '딸기', '복숭아']:
+        try:
+            price_int = int(float(str(PDLT_PRCE).replace(',', '').strip()))
+        except:
+            price_int = 0  # 가격 변환 실패 시 0으로 처리
 
-# ✅ Pandas로 변환 후 출력 및 저장
-df = pd.DataFrame(data)
+        data.append({
+            '날짜': PRCE_REG_YMD,
+            '시도명': CTNP_NM,
+            '품목명': PDLT_NM,
+            '조사구분명': EXMN_SE_NM,
+            '산물등급': BULK_GRAD_NM,
+            '가격': price_int
+        })
+
+# 리스트를 DataFrame으로 변환
+df_data = pd.DataFrame(data)
+
+# 그룹바이 후 평균 가격 계산 및 정수 변환
+result = df_data.groupby(['날짜', '품목명'])['가격'].mean().reset_index()
+result['가격'] = result['가격'].round().astype(int)
+
+# 결과 출력
 print("\n📊 최종 데이터:")
-print(df.head())
+print(result.head())
 
-# ✅ 엑셀 저장 (선택)
-# df.to_excel("가격데이터 1차가공.xlsx", index=False)
-df.to_csv("../saveFiles/가격데이터 1차가공.csv", index=False)
-print("✅ 엑셀 저장 완료")
-
-
+# 결과를 CSV 파일로 저장
+save_path = os.path.join(os.path.dirname(folder_path), '가격데이터_1차가공.csv')
+result.to_csv(save_path, index=False, encoding='utf-8-sig')
+print(f"✅ CSV 저장 완료: {save_path}")
