@@ -7,10 +7,10 @@ from  sklearn.model_selection import train_test_split
 import pandas as pd
 
 # csv 불러오기
-df_str = pd.read_csv('./data/날씨-생산량-딸기.csv')
-df_gal = pd.read_csv('./data/날씨-생산량-마늘.csv')
-df_pec = pd.read_csv('./data/날씨-생산량-복숭아.csv')
-df_oni = pd.read_csv('./data/날씨-생산량-양파.csv')
+df_str = pd.read_csv('data/weath-prod/날씨-생산량-딸기.csv')
+df_gal = pd.read_csv('data/weath-prod/날씨-생산량-마늘.csv')
+df_pec = pd.read_csv('data/weath-prod/날씨-생산량-복숭아.csv')
+df_oni = pd.read_csv('data/weath-prod/날씨-생산량-양파.csv')
 
 # 생산량이 0이거나 null인 행 삭제
 df_str = df_str[~((df_str['생산량'] == 0) | (df_str['생산량'].isna())|(df_str['생산량']<100))]
