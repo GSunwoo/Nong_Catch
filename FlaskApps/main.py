@@ -12,7 +12,7 @@ app = Flask(__name__)
 # 앱을 최초로 실행했을때의 화면. 주로 index화면이라고 한다.
 @app.route('/')
 def root():
-    return 'Hello Flask Apps'
+    return render_template('main_dashboard.html')
 
 @app.route('/visual')
 def show_visual():
