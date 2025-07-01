@@ -26,8 +26,7 @@ def dashboard():
 @app.errorhandler(404)
 def page_not_found(error):
     print("오류 로그:", error)  # 서버콘솔에 출력
-    return render_template('404.html')
-    return "페이지가 없습니다. URL를 확인 하세요", 404
+    return render_template('404.html'), 404
 
 
 if __name__ == '__main__':
