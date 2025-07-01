@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +16,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FFB74D 0%, #FF8F00 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -25,12 +26,12 @@
             margin: 0 auto;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #FF8F00 0%, #E65100 100%);
             color: white;
             padding: 30px;
             text-align: center;
@@ -40,36 +41,36 @@
             font-size: 2.5em;
             font-weight: 700;
             margin: 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .data-status {
             padding: 30px;
             text-align: center;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
+            background: #FFF3E0;
+            border-bottom: 2px solid #FFE0B2;
         }
 
         .data-status h3 {
-            color: #495057;
+            color: #E65100;
             margin-bottom: 15px;
             font-size: 1.3em;
         }
 
         .loading {
-            color: #007bff;
+            color: #F57C00;
             font-weight: 600;
             font-size: 1.1em;
         }
 
         .success {
-            color: #28a745;
+            color: #FF8F00;
             font-weight: 600;
             font-size: 1.1em;
         }
 
         .error {
-            color: #dc3545;
+            color: #D32F2F;
             font-weight: 600;
             font-size: 1.1em;
         }
@@ -80,7 +81,7 @@
             align-items: center;
             gap: 40px;
             padding: 30px;
-            background: #f8f9fa;
+            background: #FFF3E0;
             flex-wrap: wrap;
         }
 
@@ -91,11 +92,12 @@
             background: white;
             padding: 15px 25px;
             border-radius: 50px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 2px solid #FFE0B2;
         }
 
         .year-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FFB74D 0%, #FF8F00 100%);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -108,11 +110,12 @@
 
         .year-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(255, 143, 0, 0.4);
+            background: linear-gradient(135deg, #FF8F00 0%, #E65100 100%);
         }
 
         .year-btn:disabled {
-            background: #ccc;
+            background: #BDBDBD;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -121,28 +124,28 @@
         .year-display {
             font-size: 1.5em;
             font-weight: 700;
-            color: #333;
+            color: #E65100;
             min-width: 80px;
             text-align: center;
         }
 
         .crop-selector select {
             background: white;
-            border: 2px solid #e9ecef;
+            border: 2px solid #FFE0B2;
             padding: 15px 25px;
             border-radius: 50px;
             font-size: 1.1em;
             font-weight: 600;
-            color: #333;
+            color: #E65100;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             min-width: 150px;
         }
 
         .crop-selector select:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            border-color: #FF8F00;
+            box-shadow: 0 5px 15px rgba(255, 143, 0, 0.3);
         }
 
         .charts-container {
@@ -156,18 +159,18 @@
             background: white;
             border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 1px solid #f0f0f0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #FFF3E0;
         }
 
         .chart-title {
             font-size: 1.3em;
             font-weight: 700;
             margin-bottom: 20px;
-            color: #333;
+            color: #E65100;
             text-align: center;
             padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid #FFE0B2;
         }
 
         .correlation-chart {
@@ -175,8 +178,8 @@
             background: white;
             border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 1px solid #f0f0f0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #FFF3E0;
         }
 
         .stats-container {
@@ -184,7 +187,7 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             padding: 30px;
-            background: #f8f9fa;
+            background: #FFF3E0;
         }
 
         .stat-card {
@@ -192,25 +195,26 @@
             padding: 25px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border: 1px solid #f0f0f0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #FFF3E0;
             transition: transform 0.3s ease;
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(255, 143, 0, 0.2);
         }
 
         .stat-value {
             font-size: 2em;
             font-weight: 700;
-            color: #667eea;
+            color: #FF8F00;
             margin-bottom: 10px;
         }
 
         .stat-label {
             font-size: 0.9em;
-            color: #666;
+            color: #5D4037;
             font-weight: 600;
         }
 
@@ -234,10 +238,11 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="title">🌾 농산물 가격-생산량 분석 대시보드</h1>
+            <h1 class="title">농산물 가격-생산량 분석 대시보드</h1>
         </div>
 
         <div class="data-status" hidden="hidden">
@@ -313,10 +318,10 @@
 
         // 품목별 파일 경로
         const cropFiles = {
-            '양파': '../training/data/양파_생산량_가격_데이터.csv',
-            '딸기': '../training/data/딸기_생산량_가격_데이터.csv',
-            '마늘': '../training/data/마늘_생산량_가격_데이터.csv',
-            '복숭아': '../training/data/복숭아_생산량_가격_데이터.csv'
+            '양파': '../static/data/양파_생산량_가격_데이터.csv',
+            '딸기': '../static/data/딸기_생산량_가격_데이터.csv',
+            '마늘': '../static/data/마늘_생산량_가격_데이터.csv',
+            '복숭아': '../static/data/복숭아_생산량_가격_데이터.csv'
         };
 
         // CSV 파일 로드 함수
@@ -333,11 +338,11 @@
                         header: true,
                         encoding: 'UTF-8',
                         skipEmptyLines: true,
-                        complete: function(results) {
+                        complete: function (results) {
                             console.log(`${cropName} 데이터 로드 완료:`, results.data.length, '행');
                             resolve({ cropName, data: results.data });
                         },
-                        error: function(error) {
+                        error: function (error) {
                             console.error(`${cropName} 파일 파싱 오류:`, error);
                             reject(error);
                         }
@@ -467,12 +472,12 @@
                     datasets: [{
                         label: '가격 (원/kg)',
                         data: [],
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderColor: '#FF7F00',
+                        backgroundColor: 'rgba(255, 183, 78, 0.3)',
                         borderWidth: 3,
                         fill: true,
                         tension: 0.4,
-                        pointBackgroundColor: '#667eea',
+                        pointBackgroundColor: '#FF7F00',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointRadius: 6
@@ -510,8 +515,8 @@
                     datasets: [{
                         label: '생산량 (톤)',
                         data: [],
-                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
-                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(255, 183, 78, 0.8)',
+                        borderColor: '#FF8F00',
                         borderWidth: 2,
                         borderRadius: 8
                     }]
@@ -547,8 +552,8 @@
                     datasets: [{
                         label: '가격 vs 생산량',
                         data: [],
-                        backgroundColor: 'rgba(240, 147, 251, 0.8)',
-                        borderColor: '#f093fb',
+                        backgroundColor: 'rgba(255, 183, 78, 0.8)',
+                        borderColor: '#FF8F00',
                         borderWidth: 2,
                         pointRadius: 8
                     }]
@@ -699,4 +704,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -20,7 +20,7 @@ def show_visual():
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    return render_template('Nong-catch.html')
 
 # Page not found 에러 발생시 핸들링
 @app.errorhandler(404)
