@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기상 데이터 분석 대시보드</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #FFB74D 0%, #FF8F00 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.10);
+    overflow: hidden;
+}
+.header {
+    background: linear-gradient(135deg, #FF8F00 0%, #E65100 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+.title {
+    font-size: 2.3em;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.18);
+}
+.data-status {
+    padding: 28px;
+    text-align: center;
+    background: #FFF3E0;
+    border-bottom: 2px solid #FFE0B2;
+}
+.data-status h3 {
+    color: #E65100;
+    margin-bottom: 10px;
+    font-size: 1.15em;
+}
+.loading { color: #F57C00; font-weight: 600; font-size: 1.05em;}
+.success { color: #43A047; font-weight: 600; }
+.error { color: #D32F2F; font-weight: 600; }
+.controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 28px 0 10px;
+    background: #FFF3E0;
+}
+.file-input {
+    background: white;
+    border: 2px solid #FFE0B2;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #E65100;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    min-width: 220px;
+}
+.charts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 32px;
+}
+.chart-wrapper {
+    background: white;
+    border-radius: 22px;
+    padding: 35px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    border: 1px solid #FFF3E0;
+}
+.chart-title {
+    font-size: 1.27em;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #E65100;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #FFE0B2;
+}
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 18px;
+    padding: 28px 34px;
+    background: #FFF3E0;
+}
+.stat-card {
+    background: white;
+    padding: 22px;
+    border-radius: 13px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.07);
+    border: 1px solid #FFF3E0;
+    transition: transform 0.3s;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(255, 143, 0, 0.17);
+}
+.stat-value {
+    font-size: 1.9em;
+    font-weight: 700;
+    color: #FF8F00;
+    margin-bottom: 7px;
+}
+.stat-label {
+    font-size: 0.97em;
+    color: #5D4037;
+    font-weight: 600;
+}
+canvas { max-height: 290px; }
+@media (max-width: 900px) {
+    .container { max-width: 98vw; }
+    .charts-container { padding: 12px; }
+    .stats-container { padding: 18px 6px; }
+}
+@media (max-width: 600px) {
+    .header { font-size: 0.85em; }
+    .charts-container { gap: 20px; }
+    .chart-wrapper { padding: 16px 3vw; }
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🌤️기후 대비 수확량 분석 대시보드</h1>
+        </div>
+        <div class="data-status" hidden="hidden">
+            <div id="loadingStatus" class="loading">CSV 파일을 업로드해주세요</div>
+        </div>
+        <div class="controls">
+            <select id="cropSelector" class="file-input">
+                <option value="딸기">🍓 딸기</option>
+                <option value="마늘">🧄 마늘</option>
+                <option value="복숭아">🍑 복숭아</option>
+                <option value="양파">🧅 양파</option>
+            </select>
+        </div>
+
+
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-title" id="productionChartTitle">전체 기간 추세 (생산량)</div>
+                <canvas id="productionChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <div class="chart-title" id="trendChartTitle">전체 기간 추세 (평균기온)</div>
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <div class="chart-title">기상 요소별 비교</div>
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value" id="avgTemp">-</div>
+                <div class="stat-label">평균 기온 (°C)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgRainfall">-</div>
+                <div class="stat-label">평균 강수량 (mm)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgHumidity">-</div>
+                <div class="stat-label">평균 습도 (%)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgSunlight">-</div>
+                <div class="stat-label">평균 일조시간 (hr)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalProduction">-</div>
+                <div class="stat-label">총 생산량</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let weatherData = [];
+        let trendChart, comparisonChart, productionChart;
+
+        // CSV 파일 로드 함수
+        const cropFiles = {
+    '딸기': '../static/cli&yie_data/날씨-생산량-딸기(연도).csv',
+    '마늘': '../static/cli&yie_data/날씨-생산량-마늘(연도).csv',
+    '복숭아': '../static/cli&yie_data/날씨-생산량-복숭아(연도).csv',
+    '양파': '../static/cli&yie_data/날씨-생산량-양파(연도).csv'
+};
+let weatherData2 = [];
+
+function processData2(rawData) {
+    // 여기에서 CSV 파싱 데이터를 원하는 구조로 변환하세요
+    return rawData.map(row => ({
+        year: parseInt(row.year),
+        temperature: parseFloat(row['평균기온(°C)']) || 0,
+        rainfall: parseFloat(row['일강수량(mm)']) || 0,
+        humidity: parseFloat(row['평균 상대습도(%)']) || 0,
+        sunlight: parseFloat(row['합계 일조시간(hr)']) || 0,
+        production: parseFloat(row['생산량']) || 0
+    })).filter(row => !isNaN(row.year) && row.year > 0)
+      .sort((a, b) => a.year - b.year);
+}
+
+// 실제로 그래프 그리기 등은 여기에!
+
+
+
+// 품목별 데이터 불러오기
+function loadAndShowCrop(cropName) {
+    const statusElement = document.getElementById('loadingStatus');
+    statusElement.textContent = `${cropName} 데이터 불러오는 중...`;
+    statusElement.className = 'loading';
+
+    Papa.parse(cropFiles[cropName], {
+        download: true,
+        header: true,
+        encoding: 'UTF-8',
+        skipEmptyLines: true,
+        complete: function(results) {
+            weatherData = processData(results.data);
+            if (weatherData.length === 0) {
+                statusElement.textContent = `${cropName} 데이터 없음`;
+                statusElement.className = 'error';
+                return;
+            }
+            statusElement.textContent = `${cropName} 데이터 로드 완료! (${weatherData.length}개 연도)`;
+            statusElement.className = 'success';
+            initCharts();
+            updateCharts();
+        },
+        error: function(error) {
+            statusElement.textContent = `${cropName} 데이터 로드 실패`;
+            statusElement.className = 'error';
+        }
+    });
+}
+
+// 셀렉터 선택 시 실행!
+document.getElementById('cropSelector').addEventListener('change', function(e) {
+    loadAndShowCrop(e.target.value);
+});
+
+// 페이지 들어가면 기본 품목 자동 로드!
+window.onload = function() {
+    loadAndShowCrop(document.getElementById('cropSelector').value);
+};
+
+// 품목 선택 이벤트
+cropSelector.addEventListener('change', (e) => {
+    loadAndShowCrop(e.target.value);
+});
+
+// 페이지가 열리면 자동으로 딸기 로드(기본)
+window.onload = () => {
+    loadAndShowCrop(cropSelector.value);
+};
+
+        // 데이터 가공
+        const processData = (rawData) => {
+            return rawData.map(row => ({
+                year: parseInt(row.year),
+                temperature: parseFloat(row['평균기온(°C)']) || 0,
+                rainfall: parseFloat(row['일강수량(mm)']) || 0,
+                humidity: parseFloat(row['평균 상대습도(%)']) || 0,
+                sunlight: parseFloat(row['합계 일조시간(hr)']) || 0,
+                production: parseFloat(row['생산량']) || 0
+            })).filter(row => !isNaN(row.year) && row.year > 0)
+              .sort((a, b) => a.year - b.year);
+        };
+
+        // 차트 초기화
+        const initCharts = () => {
+            if (trendChart) trendChart.destroy();
+            if (comparisonChart) comparisonChart.destroy();
+            if (productionChart) productionChart.destroy(); // 추가
+
+            // 전체 기간 추세 차트 (평균기온)
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '평균기온(°C)',
+                        data: [],
+                        borderColor: '#FF8F00',
+                        backgroundColor: 'rgba(255, 183, 77, 0.18)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#FF8F00',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(0,0,0,0.1)' }
+                        },
+                        x: { grid: { color: 'rgba(0,0,0,0.1)' } }
+                    }
+                }
+            });
+
+            // 1. 생산량 막대그래프
+            const productionCtx = document.getElementById('productionChart').getContext('2d');
+            productionChart = new Chart(productionCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '생산량',
+                        data: [],
+                        backgroundColor: '#FFB74D',
+                        borderColor: '#FF8F00',
+                        borderWidth: 2,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: '연도' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '생산량 (kg)' }
+                        }
+                    }
+                }
+            });
+
+            const initCharts = () => {
+    if (trendChart) trendChart.destroy();
+    if (comparisonChart) comparisonChart.destroy();
+    if (productionChart) productionChart.destroy(); // 추가
+
+    // 2. 기존 trendChart, comparisonChart 코드 (생략)
+    // ...
+};
+
+            // 기상 요소별 비교 차트
+            const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(comparisonCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '평균기온 (°C)',
+                            data: [],
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '일강수량 (mm)',
+                            data: [],
+                            borderColor: '#FF6F61',
+                            backgroundColor: 'rgba(255, 111, 97, 0.15)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: '평균 상대습도 (%)',
+                            data: [],
+                            borderColor: '#E53935',
+                            backgroundColor: 'rgba(229, 57, 53, 0.14)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '합계 일조시간 (hr)',
+                            data: [],
+                            borderColor: '#f9ca24',
+                            backgroundColor: 'rgba(249, 202, 36, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        x: { display: true, title: { display: true, text: '연도' }},
+                        y: { type: 'linear', display: true, position: 'left' },
+                        y1: {
+                            type: 'linear', display: true, position: 'right',
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        };
+
+        // 차트 업데이트
+        const updateCharts = () => {
+            if (weatherData.length === 0) return;
+
+            // 전체 기간 추세 차트(평균기온)
+            const trendData = weatherData.map(d => d.temperature);
+            trendChart.data.labels = weatherData.map(d => d.year);
+            trendChart.data.datasets[0].data = trendData;
+            trendChart.update('active');
+
+            const productionData = weatherData.map(d => d.production);
+            productionChart.data.labels = weatherData.map(d => d.year);
+            productionChart.data.datasets[0].data = productionData;
+            productionChart.update('active');
+
+            // 비교 차트 업데이트
+            comparisonChart.data.labels = weatherData.map(d => d.year);
+            comparisonChart.data.datasets[0].data = weatherData.map(d => d.temperature);
+            comparisonChart.data.datasets[1].data = weatherData.map(d => d.rainfall);
+            comparisonChart.data.datasets[2].data = weatherData.map(d => d.humidity);
+            comparisonChart.data.datasets[3].data = weatherData.map(d => d.sunlight);
+            comparisonChart.update('active');
+
+            // 통계 업데이트
+            updateStats();
+        };
+
+        // 통계 업데이트 함수
+        const updateStats = () => {
+            if (weatherData.length === 0) return;
+            const avgTemp = (weatherData.reduce((sum, d) => sum + d.temperature, 0) / weatherData.length).toFixed(1);
+            const avgRainfall = (weatherData.reduce((sum, d) => sum + d.rainfall, 0) / weatherData.length).toFixed(1);
+            const avgHumidity = (weatherData.reduce((sum, d) => sum + d.humidity, 0) / weatherData.length).toFixed(1);
+            const avgSunlight = (weatherData.reduce((sum, d) => sum + d.sunlight, 0) / weatherData.length).toFixed(1);
+            const totalProduction = weatherData.reduce((sum, d) => sum + d.production, 0);
+
+            document.getElementById('avgTemp').textContent = avgTemp;
+            document.getElementById('avgRainfall').textContent = avgRainfall;
+            document.getElementById('avgHumidity').textContent = avgHumidity;
+            document.getElementById('avgSunlight').textContent = avgSunlight;
+            document.getElementById('totalProduction').textContent = totalProduction.toLocaleString();
+        };
+
+
+
+    </script>
+</body>
+</html>
