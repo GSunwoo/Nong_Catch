@@ -3,4 +3,7 @@
 /training/data/
 /training/trainData/
 /data_visualization/data/
+/data_visualization/font/
+/data_visualization/picture/
+/FlaskApps/static/
 /training/trainedModel/

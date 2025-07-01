@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>농산물 대시보드</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .controls { margin-bottom: 20px; text-align: center; }
+        select { padding: 8px 12px; margin: 0 10px; font-size: 16px; }
+        canvas { background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin: 20px auto; display: block; max-width: 900px; }
+    </style>
+</head>
+<body>
+
+<h1>농산물 가격 및 생산량 대시보드</h1>
+
+<div class="controls">
+    <label for="yearSelect">연도:</label>
+    <select id="yearSelect"></select>
+
+    <label for="cropSelect">작물:</label>
+    <select id="cropSelect">
+        <option value="양파">양파</option>
+        <option value="딸기">딸기</option>
+        <option value="마늘">마늘</option>
+        <option value="복숭아">복숭아</option>
+    </select>
+</div>
+
+<canvas id="priceChart" width="900" height="400"></canvas>
+<canvas id="productionChart" width="900" height="400"></canvas>
+
+<script>
+    // CSV 파일 경로 (Flask static 폴더 기준 위치에 맞게 변경)
+    const cropFiles = {
+        '양파': '../static/data/양파_생산량_가격_데이터.csv',
+        '딸기': '../static/data/딸기_생산량_가격_데이터.csv',
+        '마늘': '../static/data/마늘_생산량_가격_데이터.csv',
+        '복숭아': '../static/data/복숭아_생산량_가격_데이터.csv'
+    };
+
+    let cropData = {};  // {작물명: {연도: {prices:[], production:[]}}}
+    let availableYears = new Set();
+    let currentYear = null;
+    let currentCrop = '양파';
+
+    const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+    const yearSelect = document.getElementById('yearSelect');
+    const cropSelect = document.getElementById('cropSelect');
+
+    // 차트 변수
+    let priceChart, productionChart;
+
+    // CSV 데이터 로드 함수
+    async function loadCSV(cropName, path) {
+        const res = await fetch(path);
+        if (!res.ok) throw new Error(`${cropName} CSV 로드 실패`);
+        const csvText = await res.text();
+        return new Promise((resolve) => {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: results => resolve({cropName, data: results.data})
+            });
+        });
+    }
+
+    // 모든 작물 데이터 로드
+    async function loadAllData() {
+        const promises = Object.entries(cropFiles).map(([crop, path]) => loadCSV(crop, path));
+        const results = await Promise.all(promises);
+
+        // 데이터 처리
+        results.forEach(({cropName, data}) => {
+            cropData[cropName] = {};
+
+            data.forEach(row => {
+                let date = new Date(row['날짜']);
+                if (isNaN(date)) return;
+
+                let year = date.getFullYear();
+                let month = date.getMonth();
+
+                if (!cropData[cropName][year]) {
+                    cropData[cropName][year] = {
+                        prices: new Array(12).fill(0),
+                        production: new Array(12).fill(0),
+                        counts: new Array(12).fill(0)
+                    };
+                }
+
+                const price = parseFloat(row['가격']) || 0;
+                const production = parseFloat(row['생산량']) || 0;
+
+                cropData[cropName][year].prices[month] += price;
+                cropData[cropName][year].production[month] += production;
+                cropData[cropName][year].counts[month]++;
+                availableYears.add(year);
+            });
+
+            // 월별 평균 계산
+            Object.entries(cropData[cropName]).forEach(([year, ydata]) => {
+                for (let i=0; i<12; i++) {
+                    if (ydata.counts[i] > 0) {
+                        ydata.prices[i] /= ydata.counts[i];
+                        ydata.production[i] /= ydata.counts[i];
+                    }
+                }
+                delete ydata.counts;
+            });
+        });
+
+        // 연도 셀렉트 옵션 세팅
+        let sortedYears = Array.from(availableYears).sort();
+        sortedYears.forEach(year => {
+            let option = document.createElement('option');
+            option.value = year;
+            option.textContent = year + '년';
+            yearSelect.appendChild(option);
+        });
+
+        // 기본 선택은 가장 최신 연도
+        currentYear = sortedYears[sortedYears.length -1];
+        yearSelect.value = currentYear;
+
+        updateCharts();
+    }
+
+    // 차트 초기화
+    function initCharts() {
+        const priceCtx = document.getElementById('priceChart').getContext('2d');
+        priceChart = new Chart(priceCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: '가격 (원/kg)',
+                    data: [],
+                    borderColor: 'blue',
+                    backgroundColor: 'rgba(0, 0, 255, 0.2)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: false } }
+            }
+        });
+
+        const productionCtx = document.getElementById('productionChart').getContext('2d');
+        productionChart = new Chart(productionCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: '생산량 (톤)',
+                    data: [],
+                    backgroundColor: 'purple'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // 차트 업데이트
+    function updateCharts() {
+        if (!cropData[currentCrop] || !cropData[currentCrop][currentYear]) {
+            console.log('데이터 없음:', currentCrop, currentYear);
+            priceChart.data.datasets[0].data = new Array(12).fill(0);
+            productionChart.data.datasets[0].data = new Array(12).fill(0);
+            priceChart.update();
+            productionChart.update();
+            return;
+        }
+
+        const yearData = cropData[currentCrop][currentYear];
+        priceChart.data.datasets[0].data = yearData.prices;
+        productionChart.data.datasets[0].data = yearData.production;
+
+        priceChart.update();
+        productionChart.update();
+    }
+
+    // 이벤트 리스너 등록
+    yearSelect.addEventListener('change', (e) => {
+        currentYear = parseInt(e.target.value);
+        updateCharts();
+    });
+
+    cropSelect.addEventListener('change', (e) => {
+        currentCrop = e.target.value;
+        updateCharts();
+    });
+
+    // 초기화
+    window.onload = () => {
+        initCharts();
+        loadAllData();
+    };
+</script>
+
+</body>
+</html>

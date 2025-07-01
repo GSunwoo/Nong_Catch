@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>404 Not Found</title>
+    <style>
+        html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;  /* 스크롤 방지 */
+    box-sizing: border-box;
+}
+
+body {
+    background-image: url('{{ url_for("static", filename="picture/2BH940A.jpg") }}');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: 100% 100%;  /* 가득 채움. 비율 무시하고 화면에 맞춤 */
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+
+    font-family: Arial, sans-serif;
+    color: white;
+    text-shadow: 1px 1px 4px black;
+}
+    </style>
+</head>
+<body>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>연도별 농산물 시각화</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: sans-serif;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 14px;
+            font-size: 16px;
+        }
+        img {
+            width: 90%;
+            max-width: 1000px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h2>연도별 작물 생산량과 가격 추이</h2>
+
+    <!-- 버튼 영역 -->
+    <div id="buttonArea"></div>
+
+    <!-- 이미지 영역 -->
+    <img id="graphImage"  alt="그래프 이미지">
+
+    <script>
+        const startYear = 2004;
+        const endYear = 2023;
+        const buttonArea = document.getElementById('buttonArea');
+        const graphImage = document.getElementById('graphImage');
+
+        for (let year = startYear; year <= endYear; year++) {
+            const btn = document.createElement('button');
+            btn.innerText = `${year}년`;
+            btn.onclick = () => {
+                graphImage.src = `../static/picture/${year}.png`;
+                graphImage.alt = `${year}년 그래프`;
+            };
+            buttonArea.appendChild(btn);
+        }
+    </script>
+</body>
+</html>
