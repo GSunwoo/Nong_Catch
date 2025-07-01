@@ -2,11 +2,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rc
-'''
-사용할 그래프 -> 산점도(Scatter plot)
-: 연속되는 값을 갖는 서로 다른 두 변수 사이의 관계를 나타낸다.
-  x,y축에 변수를 두고 데이터가 위치한 좌표를 찾아 점으로 표시한다.
-'''
 
 font_path = "./font/malgun.ttf"
 font_name = font_manager.FontProperties(fname=font_path).get_name()
@@ -25,27 +20,41 @@ ped = pd.read_csv('./data/날씨-생산량-복숭아(연도).csv')
 od = pd.read_csv('./data/날씨-생산량-양파(연도).csv')
 
 fig, axes = plt.subplots(2, 2, figsize=(15, 8))
-
 axes = axes.flatten()
 
-# 해당 그래프를 그려주는 부분
+# 딸기
+df_sd = pd.read_csv('../saveFiles/2003~2024년 전라남도 평균 기상요소.csv')
+# 마늘
+df_gd = pd.read_csv('../saveFiles/2003~2024년 전라남도 평균 기상요소.csv')
+# 복숭아
+df_ped = pd.read_csv('../saveFiles/2003~2024년 전라남도 평균 기상요소.csv')
+# 양파
+df_od = pd.read_csv('../saveFiles/2003~2024년 전라남도 평균 기상요소.csv')
+
+# 생산량 그래프를 그려주는 부분
 sd.plot(kind='bar', x='year', y='생산량', ax=axes[0], color='royalblue')
 gd.plot(kind='bar', x='year', y='생산량', ax=axes[1], color='royalblue')
 ped.plot(kind='bar', x='year', y='생산량', ax=axes[2], color='royalblue')
 od.plot(kind='bar', x='year', y='생산량', ax=axes[3], color='royalblue')
 
-# 그래프 그리는 부분
-# df_sd .plot(kind='bar', x='일강수량(mm)', y='생산량',
-#             ax=axe1, color='royalblue', marker='o', markersize=2)
-#
-# df_gd .plot(kind='bar', x='일강수량(mm)', y='생산량',
-#             ax=axe2, color='royalblue', marker='o', markersize=2)
-#
-# df_ped.plot(kind='bar', x='일강수량(mm)', y='생산량',
-#             ax=axe3, color='royalblue', marker='o', markersize=2)
-#
-# df_od .plot(kind='bar', x='일강수량(mm)', y='생산량',
-#             ax=axe4, color='royalblue', marker='o', markersize=2)
+sd.plot(kind='bar', x='year', y='생산량', ax=axes[0], color='royalblue')
+gd.plot(kind='bar', x='year', y='생산량', ax=axes[1], color='royalblue')
+ped.plot(kind='bar', x='year', y='생산량', ax=axes[2], color='royalblue')
+od.plot(kind='bar', x='year', y='생산량', ax=axes[3], color='royalblue')
+
+
+# 강수량 그래프 그리는 부분
+sd.plot(kind='line', x='year', y='일강수량(mm)',
+            ax=axes[0], color='royalblue', marker='o', markersize=2)
+
+gd.plot(kind='line', x='year', y='일강수량(mm)',
+            ax=axes[1], color='royalblue', marker='o', markersize=2)
+
+ped.plot(kind='line', x='year', y='일강수량(mm)',
+            ax=axes[2], color='royalblue', marker='o', markersize=2)
+
+od.plot(kind='line', x='year', y='일강수량(mm)',
+            ax=axes[3], color='royalblue', marker='o', markersize=2)
 
 # 해당 그래프의 타이틀부분
 axes[0].set_title('딸기 (년도별)')
