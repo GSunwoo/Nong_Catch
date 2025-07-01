@@ -28,8 +28,8 @@ class EnhancedCropYieldPreprocessor:
             print(f"⚠️ '{crop_name}' 데이터에 '생산량' 열이 없습니다. 0으로 채웁니다.")
             df['생산량'] = 0
 
-        # 생산량 필터링 (0, null, 극값 제거)
-        df = df[~((df['생산량'] == 0) | (df['생산량'].isna()) | (df['생산량'] < 100))]
+        # 생산량 필터링 (null)
+        df = df[~(df['생산량'].isna())]
 
         if len(df) == 0:
             raise ValueError(f"'{crop_name}' 데이터가 '생산량' 기준 필터링 후 비어 있습니다.")
