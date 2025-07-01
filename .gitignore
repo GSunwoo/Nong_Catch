@@ -7,3 +7,7 @@
 /data_visualization/picture/
 /FlaskApps/static/
 /training/trainedModel/
+/training/models/
+/training/predict_price/
+/training/predict_year/
+
