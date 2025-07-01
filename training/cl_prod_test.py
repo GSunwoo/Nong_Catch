@@ -1,6 +1,9 @@
 '''
 향상된 농작물 수확량 예측 데이터 전처리 (계절성 + 연간 트렌드 + 작물별 특성 강화)
 '''
+import os
+
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -446,6 +449,13 @@ def main():
             print(f"{crop_name} 처리 중 오류: {e}")
             import traceback
             traceback.print_exc()
+
+        # 모델 저장
+        joblib.dump(rf_model, f'./trainedModel/{crop_name}_rf_model.pkl')
+        joblib.dump(gb_model, f'./trainedModel/{crop_name}_gb_model.pkl')
+        joblib.dump(scaler, f'./trainedModel/{crop_name}_scaler.pkl')
+
+        print(f"💾 모델과 스케일러 저장 완료: {crop_name}")
 
     return processed_data
 
