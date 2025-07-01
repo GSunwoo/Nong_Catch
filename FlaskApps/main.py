@@ -22,6 +22,10 @@ def show_visual():
 def dashboard():
     return render_template('Nong-catch.html')
 
+@app.route('/dashboard/cy')
+def cy_dashboard():
+    return render_template('cli&yie_dashboard.html')
+
 # Page not found 에러 발생시 핸들링
 @app.errorhandler(404)
 def page_not_found(error):
