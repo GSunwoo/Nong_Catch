@@ -454,6 +454,7 @@ def main():
         joblib.dump(rf_model, f'./trainedModel/{crop_name}_rf_model.pkl')
         joblib.dump(gb_model, f'./trainedModel/{crop_name}_gb_model.pkl')
         joblib.dump(scaler, f'./trainedModel/{crop_name}_scaler.pkl')
+        joblib.dump(feature_cols, f'./trainedModel/{crop_name}_feature_cols.pkl')
 
         print(f"💾 모델과 스케일러 저장 완료: {crop_name}")
 

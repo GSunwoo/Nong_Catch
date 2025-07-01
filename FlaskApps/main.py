@@ -12,7 +12,7 @@ app = Flask(__name__)
 # 앱을 최초로 실행했을때의 화면. 주로 index화면이라고 한다.
 @app.route('/')
 def root():
-    return 'Hello Flask Apps'
+    return render_template('main_dashboard.html')
 
 @app.route('/visual')
 def show_visual():
@@ -20,7 +20,11 @@ def show_visual():
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    return render_template('Nong-catch.html')
+
+@app.route('/dashboard/cy')
+def cy_dashboard():
+    return render_template('cli&yie_dashboard.html')
 
 # Page not found 에러 발생시 핸들링
 @app.errorhandler(404)
