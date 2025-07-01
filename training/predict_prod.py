@@ -54,5 +54,7 @@ for crop_name in crop_types:
         '생산량': rounded_preds
     })
 
+    df_pred['생산량'] = df_pred['생산량'].apply(lambda x: 0 if x <= 40 else x)
+
     df_pred.to_csv(f'./data/pred/{crop_name}_생산량_예측결과.csv', index=False, encoding='utf-8')
 print("✅ 예측값이 '예측결과.csv'로 저장되었습니다.")
