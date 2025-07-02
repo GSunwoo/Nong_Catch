@@ -10,18 +10,19 @@ rc('font', family=font_name)
 
 # 모든 그래프를 무조건 기본 설정으로 시작하게 하려면 코드 맨 앞에 두면 편하다.
 plt.style.use('ggplot')
+# 현재 그래프에서 어떤 글꼴이 사용되고 있는지 출력해줌
 print(plt.rcParams['font.family'])
 
-# 딸기
+# 딸기 (csv파일로 가져와서 각 변수에 넣어준다.)
 sd = pd.read_csv('./data/날씨-생산량-딸기(연도).csv')
-# 마늘
+# 마늘 (csv파일로 가져와서 각 변수에 넣어준다.)
 gd = pd.read_csv('./data/날씨-생산량-마늘(연도).csv')
-# 복숭아
+# 복숭아 (csv파일로 가져와서 각 변수에 넣어준다.)
 ped = pd.read_csv('./data/날씨-생산량-복숭아(연도).csv')
-# 양파
+# 양파 (csv파일로 가져와서 각 변수에 넣어준다.)
 od = pd.read_csv('./data/날씨-생산량-양파(연도).csv')
 
-# 년도 int형으로 바꿔줌
+# 년도를 int형으로 바꿔줌으로써 x축 년도가 소수점붙어서 안나온다.
 year = sd['year'].astype(int)
 # 2행 2열짜리 그래프 4개를 한꺼번에 만든다.
 fig, axes = plt.subplots(2, 2, figsize=(15, 8))
