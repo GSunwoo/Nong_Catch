@@ -73,7 +73,7 @@ def root():
     grouped_price_gar = df_price_gar.groupby('연도')[['마늘']].mean().round(1)
 
     # 📌 리스트로 변환
-    price_years = grouped_price_str.index.tolist()
+    price_years = grouped_price_oni.index.tolist()
     price_onion = grouped_price_oni['양파'].tolist()
     price_garlic = grouped_price_gar['마늘'].tolist()
     price_strawberry = grouped_price_str['딸기'].tolist()
