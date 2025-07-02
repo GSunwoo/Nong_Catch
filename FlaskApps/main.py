@@ -11,19 +11,6 @@ import requests
 # 플라스크 앱 초기화
 app = Flask(__name__)
 
-#-----------------------------------------------api 추가------------------------------------
-ITEMS = {
-    "양파": {"category": "200", "code": "245"},
-    "마늘": {"category": "200", "code": "248"},
-    "딸기": {"category": "200", "code": "226"},
-    "복숭아": {"category": "400", "code": "413"}
-}
-
-# API 키
-API_KEY = "f42c857e-d5bc-47e7-a59e-5d2de8725e9a"
-API_ID = "dudns5552"
-BASE_URL = "http://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
-#-----------------------------------------------api 추가 끝-------------------------------------
 
 
 
@@ -151,6 +138,17 @@ def page_not_found(error):
 
 #------------------------------------------------가격 동향 페이지 추가---------------------------------------
 
+ITEMS = {
+    "양파": {"category": "200", "code": "245"},
+    "마늘": {"category": "200", "code": "248"},
+    "딸기": {"category": "200", "code": "226"},
+    "복숭아": {"category": "400", "code": "413"}
+}
+
+API_KEY = "f42c857e-d5bc-47e7-a59e-5d2de8725e9a"
+API_ID = "dudns5552"
+BASE_URL = "http://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
+
 @app.route("/price")
 def price():
     results = {}
@@ -169,43 +167,87 @@ def price():
         }
 
         try:
-            response = requests.get(BASE_URL, params=params)
+            response = requests.get(BASE_URL, params=params, timeout=10)
             data = response.json()
 
-            # 필터링: 해당 itemcode + 등급='상품'
-            for item in data["price"]:
-                if item["itemcode"] == info["code"] and item["rank"] == "상품":
-                    price_today = float(item["dpr1"] or 0)
-                    price_yesterday = float(item["dpr2"] or 0)
-                    price_week = float(item["dpr3"] or 0)
-                    price_normal = float(item["dpr7"] or 0)
+            # ✅ JSON 내부 구조에 맞게 수정
+            items = data.get("data", {}).get("item", [])
 
-                    # 값 보정
-                    actual_price = price_today if price_today else price_yesterday
+            for item in items:
+                if item.get("item_code") == info["code"] and item.get("rank") == "상품":
 
-                    # 퍼센트 계산
-                    diff_normal = round(((actual_price - price_normal) / price_normal) * 100, 1) if price_normal else 0
-                    diff_week = round(((actual_price - price_week) / price_week) * 100, 1) if price_week else 0
+                    # ✅ 쉼표 제거 후 안전하게 float 변환
+                    def to_float(val):
+                        try:
+                            val = val.strip().replace(",", "")
+                            return float(val) if val not in ["", "-"] else None
+                        except:
+                            return None
 
-                    results[name] = {
-                        "prices": {
-                            "평년": price_normal,
-                            "1주일전": price_week,
-                            "오늘": actual_price
-                        },
-                        "percent": {
-                            "평년": diff_normal,
-                            "1주일전": diff_week
+                    price_today = to_float(item.get("dpr1", ""))
+                    price_yesterday = to_float(item.get("dpr2", ""))
+                    price_week = to_float(item.get("dpr3", ""))
+                    price_normal = to_float(item.get("dpr7", ""))
+                    actual_price = price_today if price_today is not None else price_yesterday
+
+                    is_fruit = name in ["복숭아", "딸기"]
+                    is_vegetable = name in ["양파", "마늘"]
+
+                    # ➕ 과일: 오늘/어제 모두 없으면 수확철 아님
+                    if is_fruit and actual_price is None:
+                        results[name] = None
+                        break
+
+                    # ➕ 채소: 하나라도 있으면 비교
+                    if is_vegetable and actual_price is not None:
+                        if price_week and price_normal:
+                            diff_normal = round(((actual_price - price_normal) / price_normal) * 100, 1)
+                            diff_week = round(((actual_price - price_week) / price_week) * 100, 1)
+
+                            results[name] = {
+                                "prices": {
+                                    "평년": price_normal,
+                                    "1주일전": price_week,
+                                    "오늘": actual_price
+                                },
+                                "percent": {
+                                    "평년": diff_normal,
+                                    "1주일전": diff_week
+                                }
+                            }
+                        else:
+                            results[name] = None
+                        break
+
+                    # ➕ 과일: 가격 비교 가능하면 계산
+                    if is_fruit and actual_price is not None and price_week and price_normal:
+                        diff_normal = round(((actual_price - price_normal) / price_normal) * 100, 1)
+                        diff_week = round(((actual_price - price_week) / price_week) * 100, 1)
+
+                        results[name] = {
+                            "prices": {
+                                "평년": price_normal,
+                                "1주일전": price_week,
+                                "오늘": actual_price
+                            },
+                            "percent": {
+                                "평년": diff_normal,
+                                "1주일전": diff_week
+                            }
                         }
-                    }
-                    break
-            else:
-                results[name] = None  # 수확철 아님
+                        break
+
+            # 결과가 생성되지 않은 품목은 None 처리
+            if name not in results:
+                results[name] = None
+
         except Exception as e:
-            results[name] = None  # 오류 발생 시 예외 처리
+            results[name] = None
+            print(f"[❌ ERROR] {name} API 처리 중 예외 발생: {e}")
 
     return render_template("price.html", results=results)
-#------------------------------------------------가격 동향 페이지 끝-------------------------------------
+#------------------------------------------------가격 동향 페이지 끝---------------------------------------
+
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
