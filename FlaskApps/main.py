@@ -74,6 +74,25 @@ def root():
             'price': grouped['가격'].tolist()
         }
 
+    ###############################################################################
+    #기후데이터
+    # 📌 기후 데이터 (기본 연도: 2023)
+    df_weather = pd.read_csv('static/data/2003~2024년 전라남도 평균 기상요소.csv')
+    df_weather['일시'] = pd.to_datetime(df_weather['일시'])
+    df_weather['연도'] = df_weather['일시'].dt.year
+    df_weather['월'] = df_weather['일시'].dt.month
+
+    weather_data_by_year = {}
+    for year in range(2003, 2025):
+        df_year = df_weather[df_weather['연도'] == year]
+        monthly_avg = df_year.groupby('월').mean(numeric_only=True).round(2)
+        weather_data_by_year[year] = {
+            'temperature': monthly_avg['평균기온(°C)'].tolist(),
+            'rainfall': monthly_avg['일강수량(mm)'].tolist(),
+            'humidity': monthly_avg['평균 상대습도(%)'].tolist(),
+            'sunshine': monthly_avg['합계 일조시간(hr)'].tolist()
+        }
+
     # 📌 템플릿으로 모든 데이터 전달
     return render_template('main_dashboard.html',
                            cards=cards,
@@ -87,8 +106,9 @@ def root():
                            price_garlic=price_garlic,
                            price_strawberry=price_strawberry,
                            price_peach=price_peach,
-                           production_price_data=production_price_data
-                           )
+                           production_price_data=production_price_data,
+                           weather_data_by_year=weather_data_by_year,
+                           default_weather_year=2023)
 
 @app.route('/visual')
 def show_visual():
