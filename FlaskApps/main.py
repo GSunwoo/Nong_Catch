@@ -97,7 +97,7 @@ def show_visual():
 @app.route('/dashboard')
 def dashboard():
     return render_template('Nong-catch.html')
-
+# 기상&생산량 대시보드로 갈 수 있는 경로
 @app.route('/dashboard/cy')
 def cy_dashboard():
     return render_template('cli&yie_dashboard.html')
