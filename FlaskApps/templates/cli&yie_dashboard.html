@@ -8,128 +8,128 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #FFB74D 0%, #FF8F00 100%);
-    min-height: 100vh;
-    padding: 20px;
-}
-.container {
-    max-width: 1100px;
-    margin: 0 auto;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.10);
-    overflow: hidden;
-}
-.header {
-    background: linear-gradient(135deg, #FF8F00 0%, #E65100 100%);
-    color: white;
-    padding: 30px;
-    text-align: center;
-}
-.title {
-    font-size: 2.3em;
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.18);
-}
-.data-status {
-    padding: 28px;
-    text-align: center;
-    background: #FFF3E0;
-    border-bottom: 2px solid #FFE0B2;
-}
-.data-status h3 {
-    color: #E65100;
-    margin-bottom: 10px;
-    font-size: 1.15em;
-}
-.loading { color: #F57C00; font-weight: 600; font-size: 1.05em;}
-.success { color: #43A047; font-weight: 600; }
-.error { color: #D32F2F; font-weight: 600; }
-.controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 28px 0 10px;
-    background: #FFF3E0;
-}
-.file-input {
-    background: white;
-    border: 2px solid #FFE0B2;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-size: 1.1em;
-    font-weight: 600;
-    color: #E65100;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
-    min-width: 220px;
-}
-.charts-container {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    padding: 32px;
-}
-.chart-wrapper {
-    background: white;
-    border-radius: 22px;
-    padding: 35px 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    border: 1px solid #FFF3E0;
-}
-.chart-title {
-    font-size: 1.27em;
-    font-weight: 700;
-    margin-bottom: 18px;
-    color: #E65100;
-    text-align: center;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #FFE0B2;
-}
-.stats-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 18px;
-    padding: 28px 34px;
-    background: #FFF3E0;
-}
-.stat-card {
-    background: white;
-    padding: 22px;
-    border-radius: 13px;
-    text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.07);
-    border: 1px solid #FFF3E0;
-    transition: transform 0.3s;
-}
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(255, 143, 0, 0.17);
-}
-.stat-value {
-    font-size: 1.9em;
-    font-weight: 700;
-    color: #FF8F00;
-    margin-bottom: 7px;
-}
-.stat-label {
-    font-size: 0.97em;
-    color: #5D4037;
-    font-weight: 600;
-}
-canvas { max-height: 290px; }
-@media (max-width: 900px) {
-    .container { max-width: 98vw; }
-    .charts-container { padding: 12px; }
-    .stats-container { padding: 18px 6px; }
-}
-@media (max-width: 600px) {
-    .header { font-size: 0.85em; }
-    .charts-container { gap: 20px; }
-    .chart-wrapper { padding: 16px 3vw; }
-}
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #FFB74D 0%, #FF8F00 100%);
+        min-height: 100vh;
+        padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.10);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #FF8F00 0%, #E65100 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .title {
+            font-size: 2.3em;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.18);
+        }
+        .data-status {
+            padding: 28px;
+            text-align: center;
+            background: #FFF3E0;
+            border-bottom: 2px solid #FFE0B2;
+        }
+        .data-status h3 {
+            color: #E65100;
+            margin-bottom: 10px;
+            font-size: 1.15em;
+        }
+        .loading { color: #F57C00; font-weight: 600; font-size: 1.05em;}
+        .success { color: #43A047; font-weight: 600; }
+        .error { color: #D32F2F; font-weight: 600; }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 28px 0 10px;
+            background: #FFF3E0;
+        }
+        .file-input {
+            background: white;
+            border: 2px solid #FFE0B2;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #E65100;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+            min-width: 220px;
+        }
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            padding: 32px;
+        }
+        .chart-wrapper {
+            background: white;
+            border-radius: 22px;
+            padding: 35px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: 1px solid #FFF3E0;
+        }
+        .chart-title {
+            font-size: 1.27em;
+            font-weight: 700;
+            margin-bottom: 18px;
+            color: #E65100;
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #FFE0B2;
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+            padding: 28px 34px;
+            background: #FFF3E0;
+        }
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 13px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.07);
+            border: 1px solid #FFF3E0;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(255, 143, 0, 0.17);
+        }
+        .stat-value {
+            font-size: 1.9em;
+            font-weight: 700;
+            color: #FF8F00;
+            margin-bottom: 7px;
+        }
+        .stat-label {
+            font-size: 0.97em;
+            color: #5D4037;
+            font-weight: 600;
+        }
+        canvas { max-height: 290px; }
+        @media (max-width: 900px) {
+            .container { max-width: 98vw; }
+            .charts-container { padding: 12px; }
+            .stats-container { padding: 18px 6px; }
+        }
+        @media (max-width: 600px) {
+            .header { font-size: 0.85em; }
+            .charts-container { gap: 20px; }
+            .chart-wrapper { padding: 16px 3vw; }
+        }
     </style>
 </head>
 <body>
@@ -148,8 +148,6 @@ canvas { max-height: 290px; }
                 <option value="양파">🧅 양파</option>
             </select>
         </div>
-
-
         <div class="charts-container">
             <div class="chart-wrapper">
                 <div class="chart-title" id="productionChartTitle">전체 기간 추세 (생산량)</div>
@@ -193,11 +191,11 @@ canvas { max-height: 290px; }
 
         // CSV 파일 로드 함수
         const cropFiles = {
-    '딸기': '../static/cli&yie_data/날씨-생산량-딸기(연도).csv',
-    '마늘': '../static/cli&yie_data/날씨-생산량-마늘(연도).csv',
-    '복숭아': '../static/cli&yie_data/날씨-생산량-복숭아(연도).csv',
-    '양파': '../static/cli&yie_data/날씨-생산량-양파(연도).csv'
-};
+        '딸기': '../static/cli&yie_data/날씨-생산량-딸기(연도).csv',
+        '마늘': '../static/cli&yie_data/날씨-생산량-마늘(연도).csv',
+        '복숭아': '../static/cli&yie_data/날씨-생산량-복숭아(연도).csv',
+        '양파': '../static/cli&yie_data/날씨-생산량-양파(연도).csv'
+         };
 let weatherData2 = [];
 
 function processData2(rawData) {

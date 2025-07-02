@@ -4,6 +4,7 @@
     <meta charset="UTF-8"/>
     <title>농산물 메인 대시보드</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body {
           font-family: 'Segoe UI', sans-serif;
@@ -108,7 +109,7 @@
 
         canvas {
           max-width: 100%;
-          height: 300px !important;
+          height: 300px;
         }
         .styled-box {
           background: linear-gradient(to bottom, #fffdf8, #fff7ed);
@@ -174,6 +175,19 @@
             outline: none;
             border-color: #FF8F00;
             box-shadow: 0 5px 15px rgba(255, 143, 0, 0.3);
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px
+        }
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            border-radius: 15px;
+            border: 3px solid #ff9800;
+            overflow: hidden;
         }
     </style>
 </head>
@@ -347,9 +361,9 @@
         <div class="chart-area">
             {% for item, data in production_price_data.items() %}
             <div id="graph_{{ item }}"
-                 style="margin: 30px auto; max-width: 800px; {% if loop.first %}display: block;{% else %}display: none;{% endif %}">
+                 style="margin: 30px auto; max-width: 1200px; {% if loop.first %}display: block;{% else %}display: none;{% endif %}">
                 <h4 style="text-align:center; color:#E65100;">{{ item }} (생산량: 막대 / 가격: 꺾은선)</h4>
-                <canvas id="chart_{{ item }}" height="200"></canvas>
+                <canvas id="chart_{{ item }}" style="height: 500px; max-height: 500px"></canvas>
                 <script>
                     const ctx_{{ item }} = document.getElementById("chart_{{ item }}").getContext("2d");
                     new Chart(ctx_{{ item }}, {
@@ -417,15 +431,321 @@
         });
     </script>
     <div class="styled-box">
-        <h3 class="chart-title">🆕 신규 고객</h3>
-        <ul>
-            <li>Roselle Ehrman - 🇧🇷 브라질</li>
-            <li>Jane Smith - 🇦🇺 호주</li>
-            <li>Darron Handler - 🇵🇰 파키스탄</li>
-            <li>Letidace Kulik - 🇷🇺 러시아</li>
-        </ul>
+        <h3 class="chart-title">전라남도 작물 생산량 플랜트맵🌱</h3>
+        <div class="map-container">
+            <div id="map">
+            </div>
+        </div>
     </div>
 </div>
+<script>
+    let map;
+      let infoWindow;
+      // 작물 데이터 (실제 좌표)
+      const cropData = [
+          {
+              crop: "마늘",
+              region: "해남군",
+              production: "32,940",
+              price: "4,580",
+              lat: 34.5736,
+              lng: 126.5988,
+              emoji: "🧄",
+              className: "garlic"
+          },
+          {
+              crop: "마늘",
+              region: "고흥군",
+              production: "32,940",
+              price: "4,580",
+              lat: 34.5571,
+              lng: 127.3631,
+              emoji: "🧄",
+              className: "garlic"
+          },
+          {
+              crop: "마늘",
+              region: "보성군",
+              production: "32,940",
+              price: "4,580",
+              lat: 34.7804,
+              lng: 127.2283,
+              emoji: "🧄",
+              className: "garlic"
+          },
+          {
+              crop: "양파",
+              region: "무안군",
+              production: "8,560",
+              price: "6,320",
+              lat: 34.9901,
+              lng: 126.4816,
+              emoji: "🧅",
+              className: "onion"
+          },
+          {
+              crop: "양파",
+              region: "고흥군",
+              production: "8,560",
+              price: "6,320",
+              lat: 34.6679,
+              lng: 127.3409,
+              emoji: "🧅",
+              className: "onion"
+          },
+          {
+              crop: "양파",
+              region: "함평군",
+              production: "8,560",
+              price: "6,320",
+              lat: 35.0442,
+              lng: 126.4923,
+              emoji: "🧅",
+              className: "onion"
+          },
+          {
+              crop: "양파",
+              region: "신안군",
+              production: "8,560",
+              price: "6,320",
+              lat: 34.8419,
+              lng: 126.3595,
+              emoji: "🧅",
+              className: "onion"
+          },
+          {
+              crop: "딸기",
+              region: "담양군",
+              production: "18,340",
+              price: "4,200",
+              lat: 35.3214,
+              lng: 126.9881,
+              emoji: "🍓",
+              className: "strawberry"
+          },
+          {
+              crop: "딸기",
+              region: "장성군",
+              production: "18,340",
+              price: "4,200",
+              lat: 35.2874,
+              lng: 126.7571,
+              emoji: "🍓",
+              className: "strawberry"
+          },
+          {
+              crop: "딸기",
+              region: "보성군",
+              production: "18,340",
+              price: "4,200",
+              lat: 34.7448,
+              lng: 127.0732,
+              emoji: "🍓",
+              className: "strawberry"
+          },
+          {
+              crop: "딸기",
+              region: "곡성군",
+              production: "18,340",
+              price: "4,200",
+              lat: 35.2689,
+              lng: 127.2980,
+              emoji: "🍓",
+              className: "strawberry"
+          },
+          {
+              crop: "딸기",
+              region: "강진군",
+              production: "18,340",
+              price: "4,200",
+              lat: 34.6391,
+              lng: 126.7822,
+              emoji: "🍓",
+              className: "strawberry"
+          },
+          {
+              crop: "복숭아",
+              region: "순천시",
+              production: "5,840",
+              price: "6,920",
+              lat: 34.9506,
+              lng: 127.4872,
+              emoji: "🍑",
+              className: "peach"
+          },
+          {
+              crop: "복숭아",
+              region: "화순군",
+              production: "5,840",
+              price: "6,920",
+              lat: 35.0465,
+              lng: 126.9802,
+              emoji: "🍑",
+              className: "peach"
+          },
+      ];
+
+      function initMap() {
+
+          // 전라남도 중심 좌표
+          const jeonnamCenter = { lat: 34.8679, lng: 126.991 };
+
+          // 지도 초기화
+          map = new google.maps.Map(document.getElementById("map"), {
+              zoom: 9,
+              center: jeonnamCenter,
+              mapTypeId: 'terrain',
+              styles: [
+                  {
+                      featureType: "administrative.province",
+                      elementType: "geometry.stroke",
+                      stylers: [{ color: "#2196f3" }, { weight: 2 }]
+                  },
+                  {
+                      featureType: "landscape.natural",
+                      elementType: "geometry.fill",
+                      stylers: [{ color: "#fff3e0" }]
+                  },
+                  {
+                      featureType: "water",
+                      elementType: "geometry.fill",
+                      stylers: [{ color: "#2196f3" }, { lightness: 10 }]
+                  }
+              ]
+          });
+
+          // InfoWindow 초기화
+          infoWindow = new google.maps.InfoWindow();
+
+          // 각 작물 마커 생성
+          cropData.forEach(data => {
+              createCustomMarker(data);
+          });
+
+          // 전라남도 경계 폴리곤 추가 (대략적인 경계)
+          const provincePolygon = new google.maps.Polygon({
+              strokeColor: '#2196f3',
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: '#fff3e0',
+              fillOpacity: 0.1
+          });
+
+          provincePolygon.setMap(map);
+      }
+
+      function createCustomMarker(data) {
+          // 커스텀 마커 HTML 생성
+          const markerElement = document.createElement('div');
+          markerElement.className = `custom-marker ${data.className}`;
+          markerElement.innerHTML = data.emoji;
+
+          // 기본 마커 생성 (AdvancedMarkerElement 대신 일반 마커 사용)
+          const marker = new google.maps.Marker({
+              position: { lat: data.lat, lng: data.lng },
+              map: map,
+              title: `${data.region} ${data.crop}`,
+              icon: {
+                  url: createMarkerIcon(data.emoji, data.className),
+                  scaledSize: new google.maps.Size(60, 60),
+                  anchor: new google.maps.Point(30, 30)
+              }
+          });
+
+          // InfoWindow 내용 생성
+          const infoContent = `
+              <div class="info-window">
+                  <h3>${data.crop} (${data.region})</h3>
+                  <p><strong>지역:</strong> ${data.region}</p>
+                  <p><strong>총생산량:</strong> ${data.production}톤</p>
+                  <p><strong>평균가격:</strong> ${data.price}원/kg</p>
+                  <p><em>※ 데이터는 예시용입니다.</em></p>
+              </div>
+          `;
+
+          // 클릭 이벤트 추가
+          marker.addListener("click", () => {
+              infoWindow.setContent(infoContent);
+              infoWindow.open(map, marker);
+          });
+
+          // 호버 효과 (마우스 오버/아웃)
+          marker.addListener("mouseover", () => {
+              marker.setIcon({
+                  url: createMarkerIcon(data.emoji, data.className, true),
+                  scaledSize: new google.maps.Size(72, 72),
+                  anchor: new google.maps.Point(36, 36)
+              });
+          });
+
+          marker.addListener("mouseout", () => {
+              marker.setIcon({
+                  url: createMarkerIcon(data.emoji, data.className),
+                  scaledSize: new google.maps.Size(60, 60),
+                  anchor: new google.maps.Point(30, 30)
+              });
+          });
+      }
+
+      // 마커 아이콘 SVG 생성 함수
+      function createMarkerIcon(emoji, className, isHovered = false) {
+          const size = isHovered ? 72 : 60;
+          const fontSize = isHovered ? 36 : 30;
+
+          let backgroundColor;
+          switch(className) {
+              case 'strawberry':
+                  backgroundColor = '#f48fb1';
+                  break;
+              case 'garlic':
+                  backgroundColor = '#f5f5f5';
+                  break;
+              case 'peach':
+                  backgroundColor = '#ffab91';
+                  break;
+              case 'onion':
+                  backgroundColor = '#fff3e0';
+                  break;
+              default:
+                  backgroundColor = '#fff3e0';
+          }
+
+          const svg = `
+              <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="${size/2}" cy="${size/2}" r="${size/2-3}"
+                          fill="${backgroundColor}"
+                          stroke="white"
+                          stroke-width="3"
+                          filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"/>
+                  <text x="${size/2}" y="${size/2}"
+                        text-anchor="middle"
+                        dominant-baseline="central"
+                        font-size="${fontSize}"
+                        font-family="Arial, sans-serif">${emoji}</text>
+              </svg>
+          `;
+
+          return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+      }
+
+      // Google Maps API 로드 실패 시 처리
+      window.gm_authFailure = function() {
+          document.getElementById('map').innerHTML =
+              '<div class="loading" style="color: #f44336;">Google Maps API 인증에 실패했습니다. API 키를 확인해주세요.</div>';
+      };
+
+      // 에러 핸들링
+      window.addEventListener('error', function(e) {
+          if (e.message && e.message.includes('Google')) {
+              document.getElementById('map').innerHTML =
+                  '<div class="loading" style="color: #f44336;">Google Maps 로드 중 오류가 발생했습니다.</div>';
+          }
+      });
+</script>
+<!-- Google Maps API 로드 -->
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap">
+</script>
 <!-- 📉 맨 아래 넓은 생산량 그래프 -->
 <div class="styled-box" style="margin-top: 50px;">
     <div style="text-align: center; margin-top: 50px; margin-bottom: 10px;">
@@ -477,19 +797,19 @@
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
         <div>
             <div style="text-align:center; font-weight:bold; margin-bottom:8px;">🌡️ 기온 (°C)</div>
-            <canvas id="tempChart" height="160"></canvas>
+            <canvas id="tempChart" height="300"></canvas>
         </div>
         <div>
             <div style="text-align:center; font-weight:bold; margin-bottom:8px;">🌧️ 강수량 (mm)</div>
-            <canvas id="rainChart" height="160"></canvas>
+            <canvas id="rainChart" height="300"></canvas>
         </div>
         <div>
             <div style="text-align:center; font-weight:bold; margin-bottom:8px;">💧 습도 (%)</div>
-            <canvas id="humidChart" height="160"></canvas>
+            <canvas id="humidChart" height="300"></canvas>
         </div>
         <div>
             <div style="text-align:center; font-weight:bold; margin-bottom:8px;">☀️ 일조시간 (hr)</div>
-            <canvas id="sunChart" height="160"></canvas>
+            <canvas id="sunChart" height="300"></canvas>
         </div>
     </div>
 </div>
