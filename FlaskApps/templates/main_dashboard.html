@@ -315,13 +315,24 @@
 <!-- 🏆 상품 테이블과 신규 고객 박스 -->
 <div class="bottom-section">
     <div class="product-table styled-box">
-        <div style="display: flex; justify-content: space-between; align-items: center;" class="crop-selector">
+        <div style="display: flex; justify-content: space-between; align-items: center; position: relative;" class="crop-selector">
+            <div></div>
             <h3 class="chart-title">📊 연도별 품목별 생산량 & 평균가격</h3>
             <select id="itemSelector" style="height: 40px; font-size:15px; padding: 5px 20px; width: 100px;">
                 {% for item in production_price_data %}
                 <option value="{{ item }}" {% if loop.first %}selected{% endif %}>{{ item }}</option>
                 {% endfor %}
             </select>
+            <a href="{{ url_for('dashboard') }}" style="
+              background-color: #FFA726;
+              color: white;
+              padding: 8px 16px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: bold;
+              font-size: 14px;
+              box-shadow: 0 4px 10px rgba(255,167,38,0.2);
+            ">🔎 상세 보기</a>
         </div>
 
         <div class="chart-area">
@@ -408,112 +419,101 @@
 </div>
 <!-- 📉 맨 아래 넓은 생산량 그래프 -->
 <div class="styled-box" style="margin-top: 50px;">
-    <h3 class="chart-title">📉 월별 생산량 비교</h3>
-    <canvas id="productionCompareChart" height="120"></canvas>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="chart-title">🌤️ 연도별 월별 기후 변화</h3>
+        <div>
+            <button onclick="changeYear(-1)">⬅</button>
+            <span id="yearLabel" style="font-weight: bold; margin: 0 10px;">{{ default_weather_year }}</span>
+            <button onclick="changeYear(1)">➡</button>
+        </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+        <div>
+            <div style="text-align:center; font-weight:bold; margin-bottom:8px;">🌡️ 기온 (°C)</div>
+            <canvas id="tempChart" height="160"></canvas>
+        </div>
+        <div>
+            <div style="text-align:center; font-weight:bold; margin-bottom:8px;">🌧️ 강수량 (mm)</div>
+            <canvas id="rainChart" height="160"></canvas>
+        </div>
+        <div>
+            <div style="text-align:center; font-weight:bold; margin-bottom:8px;">💧 습도 (%)</div>
+            <canvas id="humidChart" height="160"></canvas>
+        </div>
+        <div>
+            <div style="text-align:center; font-weight:bold; margin-bottom:8px;">☀️ 일조시간 (hr)</div>
+            <canvas id="sunChart" height="160"></canvas>
+        </div>
+    </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <script>
-    const years = Array.from({ length: 2022 - 2004 + 1 }, (_, i) => `${2004 + i}년`);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const weatherData = {{ weather_data_by_year | tojson }};
+  let currentYear = {{ default_weather_year }};
 
-  const onionPrices = [2100, 2150, 2200, 2300, 2400, 2500, 2700, 2600, 2550, 2450, 2400, 2350, 2300, 2250, 2200, 2150, 2100, 2080, 2050];
-  const garlicPrices = [3900, 4000, 4050, 4100, 4200, 4300, 4400, 4450, 4420, 4380, 4320, 4260, 4200, 4120, 4050, 3980, 3900, 3820, 3750];
-  const strawberryPrices = [8800, 8900, 9000, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 9900, 9800, 9700, 9600, 9500, 9400];
-  const peachPrices = [4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 5900, 5800, 5700, 5600, 5500, 5400];
-
-  function createPriceChart(canvasId) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: years,
-        datasets: [
-          {
-            label: '양파',
-            data: onionPrices,
-            borderColor: '#FF7043',
-            backgroundColor: 'rgba(255,112,67,0.2)',
-            tension: 0.4
-          },
-          {
-            label: '마늘',
-            data: garlicPrices,
-            borderColor: '#FFA726',
-            backgroundColor: 'rgba(255,167,38,0.2)',
-            tension: 0.4
-          },
-          {
-            label: '딸기',
-            data: strawberryPrices,
-            borderColor: '#F06292',
-            backgroundColor: 'rgba(240,98,146,0.2)',
-            tension: 0.4
-          },
-          {
-            label: '복숭아',
-            data: peachPrices,
-            borderColor: '#FB8C00',
-            backgroundColor: 'rgba(251,140,0,0.2)',
-            tension: 0.4
-          }
-        ]
+  const chartOptions = (label, key, color) => ({
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: label,
+        data: weatherData[currentYear][key],
+        borderColor: color,
+        backgroundColor: color + '33',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        // ❌ 데이터 라벨 제거
+        datalabels: { display: false }
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'top' }
-        },
-        scales: {
-          y: { beginAtZero: false },
-          x: { title: { display: true, text: '연도' } }
+      scales: {
+        y: { beginAtZero: true },
+        x: {
+          title: { display: false },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
+          }
         }
       }
-    });
+    },
+    plugins: []  // ✅ datalabels 제거
+  });
+
+  // 🎨 오렌지 계열 색상 적용
+  const tempChart = new Chart(document.getElementById('tempChart'), chartOptions('Temperature', 'temperature', '#FFA726'));
+  const rainChart = new Chart(document.getElementById('rainChart'), chartOptions('Rainfall', 'rainfall', '#FFB74D'));
+  const humidChart = new Chart(document.getElementById('humidChart'), chartOptions('Humidity', 'humidity', '#FF8A65'));
+  const sunChart = new Chart(document.getElementById('sunChart'), chartOptions('Sunshine', 'sunshine', '#FF7043'));
+
+  function changeYear(delta) {
+    const years = Object.keys(weatherData).map(Number).sort();
+    let index = years.indexOf(currentYear);
+    index = Math.max(0, Math.min(years.length - 1, index + delta));
+    currentYear = years[index];
+    document.getElementById('yearLabel').textContent = currentYear;
+
+    // 데이터만 교체
+    tempChart.data.datasets[0].data = weatherData[currentYear]['temperature'];
+    rainChart.data.datasets[0].data = weatherData[currentYear]['rainfall'];
+    humidChart.data.datasets[0].data = weatherData[currentYear]['humidity'];
+    sunChart.data.datasets[0].data = weatherData[currentYear]['sunshine'];
+
+    tempChart.update();
+    rainChart.update();
+    humidChart.update();
+    sunChart.update();
   }
 
-  // 두 그래프 동일하게 생성
-  createPriceChart('priceCompareChart');
-  createPriceChart('priceCompareChart2');
-
-    // 구매자 성별 차트
-    const buyerCtx = document.getElementById('buyerChart').getContext('2d');
-    new Chart(buyerCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['남성', '여성', '기타'],
-        datasets: [{
-          data: [50, 35, 15],
-          backgroundColor: ['#FFB74D', '#FF8A65', '#FFD54F']
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom' } }
-      }
-    });
-
-
-    // 📉 생산량 비교 차트
-    const prodCtx = document.getElementById('productionCompareChart').getContext('2d');
-    new Chart(prodCtx, {
-      type: 'bar',
-      data: {
-        labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
-        datasets: [
-          { label: '양파', data: [1200, 1350, 1500, 1400, 1600, 1750], backgroundColor: '#FF7043' },
-          { label: '마늘', data: [1800, 1700, 1750, 1850, 1900, 2000], backgroundColor: '#FFA726' },
-          { label: '딸기', data: [800, 850, 900, 950, 970, 1000], backgroundColor: '#F06292' },
-          { label: '복숭아', data: [400, 420, 430, 460, 480, 500], backgroundColor: '#FB8C00' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'top' } },
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: '생산량 (톤)' } },
-          x: { title: { display: true, text: '월' } }
-        }
-      }
-    });
 </script>
+
 </body>
 </html>

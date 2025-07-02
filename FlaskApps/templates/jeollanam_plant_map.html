@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전라남도 작물 생산량 플랜트맵</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #f57c00;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            border-radius: 15px;
+            border: 3px solid #ff9800;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .legend h3 {
+            color: #f57c00;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 1px solid white;
+        }
+
+        .strawberry { background: linear-gradient(135deg, #f48fb1, #e91e63); }
+        .garlic { background: linear-gradient(135deg, #f5f5f5, #e0e0e0); }
+        .peach { background: linear-gradient(135deg, #ffab91, #ff5722); }
+        .onion { background: linear-gradient(135deg, #fff3e0, #ffcc80); }
+
+        .custom-marker {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 3px solid white;
+            position: relative;
+        }
+
+        .custom-marker:hover {
+            transform: scale(1.2);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+
+        .info-window {
+            max-width: 250px;
+            padding: 10px;
+        }
+
+        .info-window h3 {
+            color: #f57c00;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-window p {
+            margin: 5px 0;
+            line-height: 1.4;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #f57c00;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 전라남도 작물 생산량 플랜트맵 🌾</h1>
+
+        <div class="map-container">
+            <div id="map">
+                <div class="loading">Google Maps 로딩 중...</div>
+            </div>
+
+            <!-- 범례 -->
+            <div class="legend">
+                <h3>작물 범례</h3>
+                <div class="legend-item">
+                    <div class="legend-icon strawberry"></div>
+                    <span>딸기</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon garlic"></div>
+                    <span>마늘</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon peach"></div>
+                    <span>복숭아</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon onion"></div>
+                    <span>양파</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let infoWindow;
+
+        // 작물 데이터 (실제 좌표)
+        const cropData = [
+            {
+                crop: "마늘",
+                region: "해남군",
+                production: "32,940",
+                price: "4,580",
+                lat: 34.5736,
+                lng: 126.5988,
+                emoji: "🧄",
+                className: "garlic"
+            },
+            {
+                crop: "마늘",
+                region: "고흥군",
+                production: "32,940",
+                price: "4,580",
+                lat: 34.5571,
+                lng: 127.3631,
+                emoji: "🧄",
+                className: "garlic"
+            },
+            {
+                crop: "마늘",
+                region: "보성군",
+                production: "32,940",
+                price: "4,580",
+                lat: 34.7804,
+                lng: 127.2283,
+                emoji: "🧄",
+                className: "garlic"
+            },
+            {
+                crop: "양파",
+                region: "무안군",
+                production: "8,560",
+                price: "6,320",
+                lat: 34.9901,
+                lng: 126.4816,
+                emoji: "🧅",
+                className: "onion"
+            },
+            {
+                crop: "양파",
+                region: "고흥군",
+                production: "8,560",
+                price: "6,320",
+                lat: 34.6679,
+                lng: 127.3409,
+                emoji: "🧅",
+                className: "onion"
+            },
+            {
+                crop: "양파",
+                region: "함평군",
+                production: "8,560",
+                price: "6,320",
+                lat: 35.0442,
+                lng: 126.4923,
+                emoji: "🧅",
+                className: "onion"
+            },
+            {
+                crop: "양파",
+                region: "신안군",
+                production: "8,560",
+                price: "6,320",
+                lat: 34.8419,
+                lng: 126.3595,
+                emoji: "🧅",
+                className: "onion"
+            },
+            {
+                crop: "딸기",
+                region: "담양군",
+                production: "18,340",
+                price: "4,200",
+                lat: 35.3214,
+                lng: 126.9881,
+                emoji: "🍓",
+                className: "strawberry"
+            },
+            {
+                crop: "딸기",
+                region: "장성군",
+                production: "18,340",
+                price: "4,200",
+                lat: 35.2874,
+                lng: 126.7571,
+                emoji: "🍓",
+                className: "strawberry"
+            },
+            {
+                crop: "딸기",
+                region: "보성군",
+                production: "18,340",
+                price: "4,200",
+                lat: 34.7448,
+                lng: 127.0732,
+                emoji: "🍓",
+                className: "strawberry"
+            },
+            {
+                crop: "딸기",
+                region: "곡성군",
+                production: "18,340",
+                price: "4,200",
+                lat: 35.2689,
+                lng: 127.2980,
+                emoji: "🍓",
+                className: "strawberry"
+            },
+            {
+                crop: "딸기",
+                region: "강진군",
+                production: "18,340",
+                price: "4,200",
+                lat: 34.6391,
+                lng: 126.7822,
+                emoji: "🍓",
+                className: "strawberry"
+            },
+            {
+                crop: "복숭아",
+                region: "순천시",
+                production: "5,840",
+                price: "6,920",
+                lat: 34.9506,
+                lng: 127.4872,
+                emoji: "🍑",
+                className: "peach"
+            },
+            {
+                crop: "복숭아",
+                region: "화순군",
+                production: "5,840",
+                price: "6,920",
+                lat: 35.0465,
+                lng: 126.9802,
+                emoji: "🍑",
+                className: "peach"
+            },
+        ];
+
+        function initMap() {
+            // 로딩 메시지 제거
+            const loadingDiv = document.querySelector('.loading');
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+
+            // 전라남도 중심 좌표
+            const jeonnamCenter = { lat: 34.8679, lng: 126.991 };
+
+            // 지도 초기화
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 9,
+                center: jeonnamCenter,
+                mapTypeId: 'terrain',
+                styles: [
+                    {
+                        featureType: "administrative.province",
+                        elementType: "geometry.stroke",
+                        stylers: [{ color: "#2196f3" }, { weight: 2 }]
+                    },
+                    {
+                        featureType: "landscape.natural",
+                        elementType: "geometry.fill",
+                        stylers: [{ color: "#fff3e0" }]
+                    },
+                    {
+                        featureType: "water",
+                        elementType: "geometry.fill",
+                        stylers: [{ color: "#2196f3" }, { lightness: 10 }]
+                    }
+                ]
+            });
+
+            // InfoWindow 초기화
+            infoWindow = new google.maps.InfoWindow();
+
+            // 각 작물 마커 생성
+            cropData.forEach(data => {
+                createCustomMarker(data);
+            });
+
+            // 전라남도 경계 폴리곤 추가 (대략적인 경계)
+            const provincePolygon = new google.maps.Polygon({
+                paths: jeonnamBoundary,
+                strokeColor: '#2196f3',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#fff3e0',
+                fillOpacity: 0.1
+            });
+
+            provincePolygon.setMap(map);
+        }
+
+        function createCustomMarker(data) {
+            // 커스텀 마커 HTML 생성
+            const markerElement = document.createElement('div');
+            markerElement.className = `custom-marker ${data.className}`;
+            markerElement.innerHTML = data.emoji;
+
+            // 기본 마커 생성 (AdvancedMarkerElement 대신 일반 마커 사용)
+            const marker = new google.maps.Marker({
+                position: { lat: data.lat, lng: data.lng },
+                map: map,
+                title: `${data.region} ${data.crop}`,
+                icon: {
+                    url: createMarkerIcon(data.emoji, data.className),
+                    scaledSize: new google.maps.Size(60, 60),
+                    anchor: new google.maps.Point(30, 30)
+                }
+            });
+
+            // InfoWindow 내용 생성
+            const infoContent = `
+                <div class="info-window">
+                    <h3>${data.crop} (${data.region})</h3>
+                    <p><strong>지역:</strong> ${data.region}</p>
+                    <p><strong>총생산량:</strong> ${data.production}톤</p>
+                    <p><strong>평균가격:</strong> ${data.price}원/kg</p>
+                    <p><em>※ 데이터는 예시용입니다.</em></p>
+                </div>
+            `;
+
+            // 클릭 이벤트 추가
+            marker.addListener("click", () => {
+                infoWindow.setContent(infoContent);
+                infoWindow.open(map, marker);
+            });
+
+            // 호버 효과 (마우스 오버/아웃)
+            marker.addListener("mouseover", () => {
+                marker.setIcon({
+                    url: createMarkerIcon(data.emoji, data.className, true),
+                    scaledSize: new google.maps.Size(72, 72),
+                    anchor: new google.maps.Point(36, 36)
+                });
+            });
+
+            marker.addListener("mouseout", () => {
+                marker.setIcon({
+                    url: createMarkerIcon(data.emoji, data.className),
+                    scaledSize: new google.maps.Size(60, 60),
+                    anchor: new google.maps.Point(30, 30)
+                });
+            });
+        }
+
+        // 마커 아이콘 SVG 생성 함수
+        function createMarkerIcon(emoji, className, isHovered = false) {
+            const size = isHovered ? 72 : 60;
+            const fontSize = isHovered ? 36 : 30;
+
+            let backgroundColor;
+            switch(className) {
+                case 'strawberry':
+                    backgroundColor = '#f48fb1';
+                    break;
+                case 'garlic':
+                    backgroundColor = '#f5f5f5';
+                    break;
+                case 'peach':
+                    backgroundColor = '#ffab91';
+                    break;
+                case 'onion':
+                    backgroundColor = '#fff3e0';
+                    break;
+                default:
+                    backgroundColor = '#fff3e0';
+            }
+
+            const svg = `
+                <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="${size/2}" cy="${size/2}" r="${size/2-3}"
+                            fill="${backgroundColor}"
+                            stroke="white"
+                            stroke-width="3"
+                            filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"/>
+                    <text x="${size/2}" y="${size/2}"
+                          text-anchor="middle"
+                          dominant-baseline="central"
+                          font-size="${fontSize}"
+                          font-family="Arial, sans-serif">${emoji}</text>
+                </svg>
+            `;
+
+            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+        }
+
+        // Google Maps API 로드 실패 시 처리
+        window.gm_authFailure = function() {
+            document.getElementById('map').innerHTML =
+                '<div class="loading" style="color: #f44336;">Google Maps API 인증에 실패했습니다. API 키를 확인해주세요.</div>';
+        };
+
+        // 에러 핸들링
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('Google')) {
+                document.getElementById('map').innerHTML =
+                    '<div class="loading" style="color: #f44336;">Google Maps 로드 중 오류가 발생했습니다.</div>';
+            }
+        });
+    </script>
+
+    <!-- Google Maps API 로드 -->
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap">
+    </script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>전라남도 작물 생산량 플랜트맵</title>-->
+<!--    <style>-->
+<!--        * {-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--            box-sizing: border-box;-->
+<!--        }-->
+
+<!--        body {-->
+<!--            font-family: 'Arial', sans-serif;-->
+<!--            background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);-->
+<!--            min-height: 100vh;-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            padding: 20px;-->
+<!--        }-->
+
+<!--        .container {-->
+<!--            background: white;-->
+<!--            border-radius: 20px;-->
+<!--            box-shadow: 0 20px 40px rgba(0,0,0,0.1);-->
+<!--            padding: 40px;-->
+<!--            max-width: 1200px;-->
+<!--            width: 100%;-->
+<!--        }-->
+
+<!--        h1 {-->
+<!--            text-align: center;-->
+<!--            color: #f57c00;-->
+<!--            margin-bottom: 30px;-->
+<!--            font-size: 2.5em;-->
+<!--            font-weight: bold;-->
+<!--        }-->
+
+<!--        .map-container {-->
+<!--            position: relative;-->
+<!--            width: 100%;-->
+<!--            height: 700px;-->
+<!--            border-radius: 15px;-->
+<!--            border: 3px solid #ff9800;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+
+<!--        #map {-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            border-radius: 12px;-->
+<!--        }-->
+
+<!--        .legend {-->
+<!--            position: absolute;-->
+<!--            top: 20px;-->
+<!--            right: 20px;-->
+<!--            background: rgba(255,255,255,0.95);-->
+<!--            padding: 20px;-->
+<!--            border-radius: 10px;-->
+<!--            box-shadow: 0 5px 15px rgba(0,0,0,0.1);-->
+<!--            backdrop-filter: blur(10px);-->
+<!--            z-index: 1000;-->
+<!--        }-->
+
+<!--        .legend h3 {-->
+<!--            color: #f57c00;-->
+<!--            margin-bottom: 15px;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .legend-item {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            margin-bottom: 8px;-->
+<!--        }-->
+
+<!--        .legend-icon {-->
+<!--            width: 20px;-->
+<!--            height: 20px;-->
+<!--            border-radius: 50%;-->
+<!--            margin-right: 10px;-->
+<!--            border: 1px solid white;-->
+<!--        }-->
+
+<!--        .strawberry { background: linear-gradient(135deg, #f48fb1, #e91e63); }-->
+<!--        .garlic { background: linear-gradient(135deg, #f5f5f5, #e0e0e0); }-->
+<!--        .peach { background: linear-gradient(135deg, #ffab91, #ff5722); }-->
+<!--        .onion { background: linear-gradient(135deg, #fff3e0, #ffcc80); }-->
+
+<!--        .custom-marker {-->
+<!--            width: 60px;-->
+<!--            height: 60px;-->
+<!--            border-radius: 50%;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 30px;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);-->
+<!--            box-shadow: 0 4px 15px rgba(0,0,0,0.2);-->
+<!--            border: 3px solid white;-->
+<!--            position: relative;-->
+<!--        }-->
+
+<!--        .custom-marker:hover {-->
+<!--            transform: scale(1.2);-->
+<!--            box-shadow: 0 8px 25px rgba(0,0,0,0.3);-->
+<!--            z-index: 1000;-->
+<!--        }-->
+
+<!--        .info-window {-->
+<!--            max-width: 250px;-->
+<!--            padding: 10px;-->
+<!--        }-->
+
+<!--        .info-window h3 {-->
+<!--            color: #f57c00;-->
+<!--            margin-bottom: 8px;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .info-window p {-->
+<!--            margin: 5px 0;-->
+<!--            line-height: 1.4;-->
+<!--            font-size: 14px;-->
+<!--        }-->
+
+<!--        .loading {-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            height: 100%;-->
+<!--            color: #f57c00;-->
+<!--            font-size: 18px;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div class="container">-->
+<!--        <h1>🌾 전라남도 작물 생산량 플랜트맵 🌾</h1>-->
+
+<!--        <div class="map-container">-->
+<!--            <div id="map">-->
+<!--                <div class="loading">Google Maps 로딩 중...</div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 범례 &ndash;&gt;-->
+<!--            <div class="legend">-->
+<!--                <h3>작물 범례</h3>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon strawberry"></div>-->
+<!--                    <span>딸기</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon garlic"></div>-->
+<!--                    <span>마늘</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon peach"></div>-->
+<!--                    <span>복숭아</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon onion"></div>-->
+<!--                    <span>양파</span>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        let map;-->
+<!--        let infoWindow;-->
+
+<!--        // 작물 데이터 (실제 좌표)-->
+<!--        const cropData = [-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "해남군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.5736,-->
+<!--                lng: 126.5988,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "고흥군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.5571,-->
+<!--                lng: 127.3631,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "보성군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.7804,-->
+<!--                lng: 127.2283,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "무안군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.9901,-->
+<!--                lng: 126.4816,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "고흥군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.6679,-->
+<!--                lng: 127.3409,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "함평군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 35.0442,-->
+<!--                lng: 126.4923,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "신안군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.8419,-->
+<!--                lng: 126.3595,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "담양군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.3214,-->
+<!--                lng: 126.9881,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "장성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.2874,-->
+<!--                lng: 126.7571,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "보성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 34.7448,-->
+<!--                lng: 127.0732,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "곡성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.2689,-->
+<!--                lng: 127.2980,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "강진군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 34.6391,-->
+<!--                lng: 126.7822,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "복숭아",-->
+<!--                region: "순천시",-->
+<!--                production: "5,840",-->
+<!--                price: "6,920",-->
+<!--                lat: 34.9506,-->
+<!--                lng: 127.4872,-->
+<!--                emoji: "🍑",-->
+<!--                className: "peach"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "복숭아",-->
+<!--                region: "화순군",-->
+<!--                production: "5,840",-->
+<!--                price: "6,920",-->
+<!--                lat: 35.0465,-->
+<!--                lng: 126.9802,-->
+<!--                emoji: "🍑",-->
+<!--                className: "peach"-->
+<!--            },-->
+<!--        ];-->
+
+<!--        function initMap() {-->
+<!--            // 로딩 메시지 제거-->
+<!--            const loadingDiv = document.querySelector('.loading');-->
+<!--            if (loadingDiv) {-->
+<!--                loadingDiv.style.display = 'none';-->
+<!--            }-->
+
+<!--            // 전라남도 중심 좌표-->
+<!--            const jeonnamCenter = { lat: 34.8679, lng: 126.991 };-->
+
+<!--            // 지도 초기화-->
+<!--            map = new google.maps.Map(document.getElementById("map"), {-->
+<!--                zoom: 9,-->
+<!--                center: jeonnamCenter,-->
+<!--                mapTypeId: 'terrain',-->
+<!--                styles: [-->
+<!--                    {-->
+<!--                        featureType: "administrative.province",-->
+<!--                        elementType: "geometry.stroke",-->
+<!--                        stylers: [{ color: "#2196f3" }, { weight: 2 }]-->
+<!--                    },-->
+<!--                    {-->
+<!--                        featureType: "landscape.natural",-->
+<!--                        elementType: "geometry.fill",-->
+<!--                        stylers: [{ color: "#fff3e0" }]-->
+<!--                    },-->
+<!--                    {-->
+<!--                        featureType: "water",-->
+<!--                        elementType: "geometry.fill",-->
+<!--                        stylers: [{ color: "#ffcc80" }, { lightness: 20 }]-->
+<!--                    }-->
+<!--                ]-->
+<!--            });-->
+
+<!--            // InfoWindow 초기화-->
+<!--            infoWindow = new google.maps.InfoWindow();-->
+
+<!--            // 각 작물 마커 생성-->
+<!--            cropData.forEach(data => {-->
+<!--                createCustomMarker(data);-->
+<!--            });-->
+
+<!--            // 전라남도 경계 폴리곤 추가 (대략적인 경계)-->
+<!--            const provincePolygon = new google.maps.Polygon({-->
+<!--                paths: jeonnamBoundary,-->
+<!--                strokeColor: '#2196f3',-->
+<!--                strokeOpacity: 0.8,-->
+<!--                strokeWeight: 2,-->
+<!--                fillColor: '#fff3e0',-->
+<!--                fillOpacity: 0.1-->
+<!--            });-->
+
+<!--            provincePolygon.setMap(map);-->
+<!--        }-->
+
+<!--        function createCustomMarker(data) {-->
+<!--            // 커스텀 마커 HTML 생성-->
+<!--            const markerElement = document.createElement('div');-->
+<!--            markerElement.className = `custom-marker ${data.className}`;-->
+<!--            markerElement.innerHTML = data.emoji;-->
+
+<!--            // 기본 마커 생성 (AdvancedMarkerElement 대신 일반 마커 사용)-->
+<!--            const marker = new google.maps.Marker({-->
+<!--                position: { lat: data.lat, lng: data.lng },-->
+<!--                map: map,-->
+<!--                title: `${data.region} ${data.crop}`,-->
+<!--                icon: {-->
+<!--                    url: createMarkerIcon(data.emoji, data.className),-->
+<!--                    scaledSize: new google.maps.Size(60, 60),-->
+<!--                    anchor: new google.maps.Point(30, 30)-->
+<!--                }-->
+<!--            });-->
+
+<!--            // InfoWindow 내용 생성-->
+<!--            const infoContent = `-->
+<!--                <div class="info-window">-->
+<!--                    <h3>${data.crop} (${data.region})</h3>-->
+<!--                    <p><strong>지역:</strong> ${data.region}</p>-->
+<!--                    <p><strong>총생산량:</strong> ${data.production}톤</p>-->
+<!--                    <p><strong>평균가격:</strong> ${data.price}원/kg</p>-->
+<!--                    <p><em>※ 데이터는 예시용입니다.</em></p>-->
+<!--                </div>-->
+<!--            `;-->
+
+<!--            // 클릭 이벤트 추가-->
+<!--            marker.addListener("click", () => {-->
+<!--                infoWindow.setContent(infoContent);-->
+<!--                infoWindow.open(map, marker);-->
+<!--            });-->
+
+<!--            // 호버 효과 (마우스 오버/아웃)-->
+<!--            marker.addListener("mouseover", () => {-->
+<!--                marker.setIcon({-->
+<!--                    url: createMarkerIcon(data.emoji, data.className, true),-->
+<!--                    scaledSize: new google.maps.Size(72, 72),-->
+<!--                    anchor: new google.maps.Point(36, 36)-->
+<!--                });-->
+<!--            });-->
+
+<!--            marker.addListener("mouseout", () => {-->
+<!--                marker.setIcon({-->
+<!--                    url: createMarkerIcon(data.emoji, data.className),-->
+<!--                    scaledSize: new google.maps.Size(60, 60),-->
+<!--                    anchor: new google.maps.Point(30, 30)-->
+<!--                });-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 마커 아이콘 SVG 생성 함수-->
+<!--        function createMarkerIcon(emoji, className, isHovered = false) {-->
+<!--            const size = isHovered ? 72 : 60;-->
+<!--            const fontSize = isHovered ? 36 : 30;-->
+
+<!--            let backgroundColor;-->
+<!--            switch(className) {-->
+<!--                case 'strawberry':-->
+<!--                    backgroundColor = '#f48fb1';-->
+<!--                    break;-->
+<!--                case 'garlic':-->
+<!--                    backgroundColor = '#f5f5f5';-->
+<!--                    break;-->
+<!--                case 'peach':-->
+<!--                    backgroundColor = '#ffab91';-->
+<!--                    break;-->
+<!--                case 'onion':-->
+<!--                    backgroundColor = '#fff3e0';-->
+<!--                    break;-->
+<!--                default:-->
+<!--                    backgroundColor = '#fff3e0';-->
+<!--            }-->
+
+<!--            const svg = `-->
+<!--                <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">-->
+<!--                    <circle cx="${size/2}" cy="${size/2}" r="${size/2-3}"-->
+<!--                            fill="${backgroundColor}"-->
+<!--                            stroke="white"-->
+<!--                            stroke-width="3"-->
+<!--                            filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"/>-->
+<!--                    <text x="${size/2}" y="${size/2}"-->
+<!--                          text-anchor="middle"-->
+<!--                          dominant-baseline="central"-->
+<!--                          font-size="${fontSize}"-->
+<!--                          font-family="Arial, sans-serif">${emoji}</text>-->
+<!--                </svg>-->
+<!--            `;-->
+
+<!--            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);-->
+<!--        }-->
+
+<!--        // Google Maps API 로드 실패 시 처리-->
+<!--        window.gm_authFailure = function() {-->
+<!--            document.getElementById('map').innerHTML =-->
+<!--                '<div class="loading" style="color: #f44336;">Google Maps API 인증에 실패했습니다. API 키를 확인해주세요.</div>';-->
+<!--        };-->
+
+<!--        // 에러 핸들링-->
+<!--        window.addEventListener('error', function(e) {-->
+<!--            if (e.message && e.message.includes('Google')) {-->
+<!--                document.getElementById('map').innerHTML =-->
+<!--                    '<div class="loading" style="color: #f44336;">Google Maps 로드 중 오류가 발생했습니다.</div>';-->
+<!--            }-->
+<!--        });-->
+<!--    </script>-->
+
+<!--    &lt;!&ndash; Google Maps API 로드 &ndash;&gt;-->
+<!--    <script async defer-->
+<!--            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap">-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>전라남도 작물 생산량 플랜트맵</title>-->
+<!--    <style>-->
+<!--        * {-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--            box-sizing: border-box;-->
+<!--        }-->
+
+<!--        body {-->
+<!--            font-family: 'Arial', sans-serif;-->
+<!--            background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);-->
+<!--            min-height: 100vh;-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            padding: 20px;-->
+<!--        }-->
+
+<!--        .container {-->
+<!--            background: white;-->
+<!--            border-radius: 20px;-->
+<!--            box-shadow: 0 20px 40px rgba(0,0,0,0.1);-->
+<!--            padding: 40px;-->
+<!--            max-width: 1200px;-->
+<!--            width: 100%;-->
+<!--        }-->
+
+<!--        h1 {-->
+<!--            text-align: center;-->
+<!--            color: #f57c00;-->
+<!--            margin-bottom: 30px;-->
+<!--            font-size: 2.5em;-->
+<!--            font-weight: bold;-->
+<!--        }-->
+
+<!--        .map-container {-->
+<!--            position: relative;-->
+<!--            width: 100%;-->
+<!--            height: 700px;-->
+<!--            border-radius: 15px;-->
+<!--            border: 3px solid #ff9800;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+
+<!--        #map {-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            border-radius: 12px;-->
+<!--        }-->
+
+<!--        .legend {-->
+<!--            position: absolute;-->
+<!--            top: 20px;-->
+<!--            right: 20px;-->
+<!--            background: rgba(255,255,255,0.95);-->
+<!--            padding: 20px;-->
+<!--            border-radius: 10px;-->
+<!--            box-shadow: 0 5px 15px rgba(0,0,0,0.1);-->
+<!--            backdrop-filter: blur(10px);-->
+<!--            z-index: 1000;-->
+<!--        }-->
+
+<!--        .legend h3 {-->
+<!--            color: #f57c00;-->
+<!--            margin-bottom: 15px;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .legend-item {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            margin-bottom: 8px;-->
+<!--        }-->
+
+<!--        .legend-icon {-->
+<!--            width: 20px;-->
+<!--            height: 20px;-->
+<!--            border-radius: 50%;-->
+<!--            margin-right: 10px;-->
+<!--            border: 1px solid white;-->
+<!--        }-->
+
+<!--        .strawberry { background: linear-gradient(135deg, #f48fb1, #e91e63); }-->
+<!--        .garlic { background: linear-gradient(135deg, #f5f5f5, #e0e0e0); }-->
+<!--        .peach { background: linear-gradient(135deg, #ffab91, #ff5722); }-->
+<!--        .onion { background: linear-gradient(135deg, #fff3e0, #ffcc80); }-->
+
+<!--        .custom-marker {-->
+<!--            width: 60px;-->
+<!--            height: 60px;-->
+<!--            border-radius: 50%;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 30px;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);-->
+<!--            box-shadow: 0 4px 15px rgba(0,0,0,0.2);-->
+<!--            border: 3px solid white;-->
+<!--            position: relative;-->
+<!--        }-->
+
+<!--        .custom-marker:hover {-->
+<!--            transform: scale(1.2);-->
+<!--            box-shadow: 0 8px 25px rgba(0,0,0,0.3);-->
+<!--            z-index: 1000;-->
+<!--        }-->
+
+<!--        .info-window {-->
+<!--            max-width: 250px;-->
+<!--            padding: 10px;-->
+<!--        }-->
+
+<!--        .info-window h3 {-->
+<!--            color: #f57c00;-->
+<!--            margin-bottom: 8px;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .info-window p {-->
+<!--            margin: 5px 0;-->
+<!--            line-height: 1.4;-->
+<!--            font-size: 14px;-->
+<!--        }-->
+
+<!--        .loading {-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            height: 100%;-->
+<!--            color: #f57c00;-->
+<!--            font-size: 18px;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div class="container">-->
+<!--        <h1>🌾 전라남도 작물 생산량 플랜트맵 🌾</h1>-->
+
+<!--        <div class="map-container">-->
+<!--            <div id="map">-->
+<!--                <div class="loading">Google Maps 로딩 중...</div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 범례 &ndash;&gt;-->
+<!--            <div class="legend">-->
+<!--                <h3>작물 범례</h3>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon strawberry"></div>-->
+<!--                    <span>딸기</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon garlic"></div>-->
+<!--                    <span>마늘</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon peach"></div>-->
+<!--                    <span>복숭아</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon onion"></div>-->
+<!--                    <span>양파</span>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        let map;-->
+<!--        let infoWindow;-->
+
+<!--        // 작물 데이터 (실제 좌표)-->
+<!--        const cropData = [-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "해남군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.5736,-->
+<!--                lng: 126.5988,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "고흥군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.5571,-->
+<!--                lng: 127.3631,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "보성군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.7804,-->
+<!--                lng: 127.2283,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "무안군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.9901,-->
+<!--                lng: 126.4816,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "고흥군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.6679,-->
+<!--                lng: 127.3409,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "함평군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 35.0442,-->
+<!--                lng: 126.4923,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "신안군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.8419,-->
+<!--                lng: 126.3595,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "담양군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.3214,-->
+<!--                lng: 126.9881,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "장성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.2874,-->
+<!--                lng: 126.7571,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "보성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 34.7448,-->
+<!--                lng: 127.0732,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "곡성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.2689,-->
+<!--                lng: 127.2980,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "강진군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 34.6391,-->
+<!--                lng: 126.7822,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "복숭아",-->
+<!--                region: "순천시",-->
+<!--                production: "5,840",-->
+<!--                price: "6,920",-->
+<!--                lat: 34.9506,-->
+<!--                lng: 127.4872,-->
+<!--                emoji: "🍑",-->
+<!--                className: "peach"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "복숭아",-->
+<!--                region: "화순군",-->
+<!--                production: "5,840",-->
+<!--                price: "6,920",-->
+<!--                lat: 35.0465,-->
+<!--                lng: 126.9802,-->
+<!--                emoji: "🍑",-->
+<!--                className: "peach"-->
+<!--            },-->
+<!--        ];-->
+
+<!--        function initMap() {-->
+<!--            // 로딩 메시지 제거-->
+<!--            const loadingDiv = document.querySelector('.loading');-->
+<!--            if (loadingDiv) {-->
+<!--                loadingDiv.style.display = 'none';-->
+<!--            }-->
+
+<!--            // 전라남도 중심 좌표-->
+<!--            const jeonnamCenter = { lat: 34.8679, lng: 126.991 };-->
+
+<!--            // 지도 초기화-->
+<!--            map = new google.maps.Map(document.getElementById("map"), {-->
+<!--                zoom: 9,-->
+<!--                center: jeonnamCenter,-->
+<!--                mapTypeId: 'terrain',-->
+<!--                styles: [-->
+<!--                    {-->
+<!--                        featureType: "administrative.province",-->
+<!--                        elementType: "geometry.stroke",-->
+<!--                        stylers: [{ color: "#ff9800" }, { weight: 2 }]-->
+<!--                    },-->
+<!--                    {-->
+<!--                        featureType: "landscape.natural",-->
+<!--                        elementType: "geometry.fill",-->
+<!--                        stylers: [{ color: "#fff3e0" }]-->
+<!--                    },-->
+<!--                    {-->
+<!--                        featureType: "water",-->
+<!--                        elementType: "geometry.fill",-->
+<!--                        stylers: [{ color: "#ffcc80" }, { lightness: 20 }]-->
+<!--                    }-->
+<!--                ]-->
+<!--            });-->
+
+<!--            // InfoWindow 초기화-->
+<!--            infoWindow = new google.maps.InfoWindow();-->
+
+<!--            // 각 작물 마커 생성-->
+<!--            cropData.forEach(data => {-->
+<!--                createCustomMarker(data);-->
+<!--            });-->
+
+<!--            // 전라남도 경계 폴리곤 추가 (대략적인 경계)-->
+<!--            const provincePolygon = new google.maps.Polygon({-->
+<!--                paths: jeonnamBoundary,-->
+<!--                strokeColor: '#ff9800',-->
+<!--                strokeOpacity: 0.8,-->
+<!--                strokeWeight: 2,-->
+<!--                fillColor: '#fff3e0',-->
+<!--                fillOpacity: 0.1-->
+<!--            });-->
+
+<!--            provincePolygon.setMap(map);-->
+<!--        }-->
+
+<!--        function createCustomMarker(data) {-->
+<!--            // 커스텀 마커 HTML 생성-->
+<!--            const markerElement = document.createElement('div');-->
+<!--            markerElement.className = `custom-marker ${data.className}`;-->
+<!--            markerElement.innerHTML = data.emoji;-->
+
+<!--            // 기본 마커 생성 (AdvancedMarkerElement 대신 일반 마커 사용)-->
+<!--            const marker = new google.maps.Marker({-->
+<!--                position: { lat: data.lat, lng: data.lng },-->
+<!--                map: map,-->
+<!--                title: `${data.region} ${data.crop}`,-->
+<!--                icon: {-->
+<!--                    url: createMarkerIcon(data.emoji, data.className),-->
+<!--                    scaledSize: new google.maps.Size(60, 60),-->
+<!--                    anchor: new google.maps.Point(30, 30)-->
+<!--                }-->
+<!--            });-->
+
+<!--            // InfoWindow 내용 생성-->
+<!--            const infoContent = `-->
+<!--                <div class="info-window">-->
+<!--                    <h3>${data.crop} (${data.region})</h3>-->
+<!--                    <p><strong>지역:</strong> ${data.region}</p>-->
+<!--                    <p><strong>총생산량:</strong> ${data.production}톤</p>-->
+<!--                    <p><strong>평균가격:</strong> ${data.price}원/kg</p>-->
+<!--                    <p><em>※ 데이터는 예시용입니다.</em></p>-->
+<!--                </div>-->
+<!--            `;-->
+
+<!--            // 클릭 이벤트 추가-->
+<!--            marker.addListener("click", () => {-->
+<!--                infoWindow.setContent(infoContent);-->
+<!--                infoWindow.open(map, marker);-->
+<!--            });-->
+
+<!--            // 호버 효과 (마우스 오버/아웃)-->
+<!--            marker.addListener("mouseover", () => {-->
+<!--                marker.setIcon({-->
+<!--                    url: createMarkerIcon(data.emoji, data.className, true),-->
+<!--                    scaledSize: new google.maps.Size(72, 72),-->
+<!--                    anchor: new google.maps.Point(36, 36)-->
+<!--                });-->
+<!--            });-->
+
+<!--            marker.addListener("mouseout", () => {-->
+<!--                marker.setIcon({-->
+<!--                    url: createMarkerIcon(data.emoji, data.className),-->
+<!--                    scaledSize: new google.maps.Size(60, 60),-->
+<!--                    anchor: new google.maps.Point(30, 30)-->
+<!--                });-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 마커 아이콘 SVG 생성 함수-->
+<!--        function createMarkerIcon(emoji, className, isHovered = false) {-->
+<!--            const size = isHovered ? 72 : 60;-->
+<!--            const fontSize = isHovered ? 36 : 30;-->
+
+<!--            let backgroundColor;-->
+<!--            switch(className) {-->
+<!--                case 'strawberry':-->
+<!--                    backgroundColor = '#f48fb1';-->
+<!--                    break;-->
+<!--                case 'garlic':-->
+<!--                    backgroundColor = '#f5f5f5';-->
+<!--                    break;-->
+<!--                case 'peach':-->
+<!--                    backgroundColor = '#ffab91';-->
+<!--                    break;-->
+<!--                case 'onion':-->
+<!--                    backgroundColor = '#fff3e0';-->
+<!--                    break;-->
+<!--                default:-->
+<!--                    backgroundColor = '#fff3e0';-->
+<!--            }-->
+
+<!--            const svg = `-->
+<!--                <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">-->
+<!--                    <circle cx="${size/2}" cy="${size/2}" r="${size/2-3}"-->
+<!--                            fill="${backgroundColor}"-->
+<!--                            stroke="white"-->
+<!--                            stroke-width="3"-->
+<!--                            filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"/>-->
+<!--                    <text x="${size/2}" y="${size/2}"-->
+<!--                          text-anchor="middle"-->
+<!--                          dominant-baseline="central"-->
+<!--                          font-size="${fontSize}"-->
+<!--                          font-family="Arial, sans-serif">${emoji}</text>-->
+<!--                </svg>-->
+<!--            `;-->
+
+<!--            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);-->
+<!--        }-->
+
+<!--        // Google Maps API 로드 실패 시 처리-->
+<!--        window.gm_authFailure = function() {-->
+<!--            document.getElementById('map').innerHTML =-->
+<!--                '<div class="loading" style="color: #f44336;">Google Maps API 인증에 실패했습니다. API 키를 확인해주세요.</div>';-->
+<!--        };-->
+
+<!--        // 에러 핸들링-->
+<!--        window.addEventListener('error', function(e) {-->
+<!--            if (e.message && e.message.includes('Google')) {-->
+<!--                document.getElementById('map').innerHTML =-->
+<!--                    '<div class="loading" style="color: #f44336;">Google Maps 로드 중 오류가 발생했습니다.</div>';-->
+<!--            }-->
+<!--        });-->
+<!--    </script>-->
+
+<!--    &lt;!&ndash; Google Maps API 로드 &ndash;&gt;-->
+<!--    <script async defer-->
+<!--            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap">-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>전라남도 작물 생산량 플랜트맵</title>-->
+<!--    <style>-->
+<!--        * {-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--            box-sizing: border-box;-->
+<!--        }-->
+
+<!--        body {-->
+<!--            font-family: 'Arial', sans-serif;-->
+<!--            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);-->
+<!--            min-height: 100vh;-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            padding: 20px;-->
+<!--        }-->
+
+<!--        .container {-->
+<!--            background: white;-->
+<!--            border-radius: 20px;-->
+<!--            box-shadow: 0 20px 40px rgba(0,0,0,0.1);-->
+<!--            padding: 40px;-->
+<!--            max-width: 1200px;-->
+<!--            width: 100%;-->
+<!--        }-->
+
+<!--        h1 {-->
+<!--            text-align: center;-->
+<!--            color: #2e7d32;-->
+<!--            margin-bottom: 30px;-->
+<!--            font-size: 2.5em;-->
+<!--            font-weight: bold;-->
+<!--        }-->
+
+<!--        .map-container {-->
+<!--            position: relative;-->
+<!--            width: 100%;-->
+<!--            height: 700px;-->
+<!--            border-radius: 15px;-->
+<!--            border: 3px solid #4caf50;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+
+<!--        #map {-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            border-radius: 12px;-->
+<!--        }-->
+
+<!--        .legend {-->
+<!--            position: absolute;-->
+<!--            top: 20px;-->
+<!--            right: 20px;-->
+<!--            background: rgba(255,255,255,0.95);-->
+<!--            padding: 20px;-->
+<!--            border-radius: 10px;-->
+<!--            box-shadow: 0 5px 15px rgba(0,0,0,0.1);-->
+<!--            backdrop-filter: blur(10px);-->
+<!--            z-index: 1000;-->
+<!--        }-->
+
+<!--        .legend h3 {-->
+<!--            color: #2e7d32;-->
+<!--            margin-bottom: 15px;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .legend-item {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            margin-bottom: 8px;-->
+<!--        }-->
+
+<!--        .legend-icon {-->
+<!--            width: 20px;-->
+<!--            height: 20px;-->
+<!--            border-radius: 50%;-->
+<!--            margin-right: 10px;-->
+<!--            border: 1px solid white;-->
+<!--        }-->
+
+<!--        .strawberry { background: linear-gradient(135deg, #f48fb1, #e91e63); }-->
+<!--        .garlic { background: linear-gradient(135deg, #f5f5f5, #e0e0e0); }-->
+<!--        .peach { background: linear-gradient(135deg, #ffab91, #ff5722); }-->
+<!--        .onion { background: linear-gradient(135deg, #fff3e0, #ffcc80); }-->
+
+<!--        .custom-marker {-->
+<!--            width: 60px;-->
+<!--            height: 60px;-->
+<!--            border-radius: 50%;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 30px;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);-->
+<!--            box-shadow: 0 4px 15px rgba(0,0,0,0.2);-->
+<!--            border: 3px solid white;-->
+<!--            position: relative;-->
+<!--        }-->
+
+<!--        .custom-marker:hover {-->
+<!--            transform: scale(1.2);-->
+<!--            box-shadow: 0 8px 25px rgba(0,0,0,0.3);-->
+<!--            z-index: 1000;-->
+<!--        }-->
+
+<!--        .info-window {-->
+<!--            max-width: 250px;-->
+<!--            padding: 10px;-->
+<!--        }-->
+
+<!--        .info-window h3 {-->
+<!--            color: #2e7d32;-->
+<!--            margin-bottom: 8px;-->
+<!--            font-size: 16px;-->
+<!--        }-->
+
+<!--        .info-window p {-->
+<!--            margin: 5px 0;-->
+<!--            line-height: 1.4;-->
+<!--            font-size: 14px;-->
+<!--        }-->
+
+<!--        .loading {-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            height: 100%;-->
+<!--            color: #2e7d32;-->
+<!--            font-size: 18px;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div class="container">-->
+<!--        <h1>🌾 전라남도 작물 생산량 플랜트맵 🌾</h1>-->
+
+<!--        <div class="map-container">-->
+<!--            <div id="map">-->
+<!--                <div class="loading">Google Maps 로딩 중...</div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 범례 &ndash;&gt;-->
+<!--            <div class="legend">-->
+<!--                <h3>작물 범례</h3>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon strawberry"></div>-->
+<!--                    <span>딸기</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon garlic"></div>-->
+<!--                    <span>마늘</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon peach"></div>-->
+<!--                    <span>복숭아</span>-->
+<!--                </div>-->
+<!--                <div class="legend-item">-->
+<!--                    <div class="legend-icon onion"></div>-->
+<!--                    <span>양파</span>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        let map;-->
+<!--        let infoWindow;-->
+
+<!--        // 작물 데이터 (실제 좌표)-->
+<!--        const cropData = [-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "해남군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.5736,-->
+<!--                lng: 126.5988,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "고흥군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.5571,-->
+<!--                lng: 127.3631,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "마늘",-->
+<!--                region: "보성군",-->
+<!--                production: "32,940",-->
+<!--                price: "4,580",-->
+<!--                lat: 34.7804,-->
+<!--                lng: 127.2283,-->
+<!--                emoji: "🧄",-->
+<!--                className: "garlic"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "무안군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.9901,-->
+<!--                lng: 126.4816,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "고흥군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.6679,-->
+<!--                lng: 127.3409,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "함평군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 35.0442,-->
+<!--                lng: 126.4923,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "양파",-->
+<!--                region: "신안군",-->
+<!--                production: "8,560",-->
+<!--                price: "6,320",-->
+<!--                lat: 34.8419,-->
+<!--                lng: 126.3595,-->
+<!--                emoji: "🧅",-->
+<!--                className: "onion"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "담양군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.3214,-->
+<!--                lng: 126.9881,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "장성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.2874,-->
+<!--                lng: 126.7571,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "보성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 34.7448,-->
+<!--                lng: 127.0732,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "곡성군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 35.2689,-->
+<!--                lng: 127.2980,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "딸기",-->
+<!--                region: "강진군",-->
+<!--                production: "18,340",-->
+<!--                price: "4,200",-->
+<!--                lat: 34.6391,-->
+<!--                lng: 126.7822,-->
+<!--                emoji: "🍓",-->
+<!--                className: "strawberry"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "복숭아",-->
+<!--                region: "순천시",-->
+<!--                production: "5,840",-->
+<!--                price: "6,920",-->
+<!--                lat: 34.9506,-->
+<!--                lng: 127.4872,-->
+<!--                emoji: "🍑",-->
+<!--                className: "peach"-->
+<!--            },-->
+<!--            {-->
+<!--                crop: "복숭아",-->
+<!--                region: "화순군",-->
+<!--                production: "5,840",-->
+<!--                price: "6,920",-->
+<!--                lat: 35.0465,-->
+<!--                lng: 126.9802,-->
+<!--                emoji: "🍑",-->
+<!--                className: "peach"-->
+<!--            },-->
+<!--        ];-->
+
+<!--        function initMap() {-->
+<!--            // 로딩 메시지 제거-->
+<!--            const loadingDiv = document.querySelector('.loading');-->
+<!--            if (loadingDiv) {-->
+<!--                loadingDiv.style.display = 'none';-->
+<!--            }-->
+
+<!--            // 전라남도 중심 좌표-->
+<!--            const jeonnamCenter = { lat: 34.8679, lng: 126.991 };-->
+
+<!--            // 지도 초기화-->
+<!--            map = new google.maps.Map(document.getElementById("map"), {-->
+<!--                zoom: 9,-->
+<!--                center: jeonnamCenter,-->
+<!--                mapTypeId: 'terrain',-->
+<!--                styles: [-->
+<!--                    {-->
+<!--                        featureType: "administrative.province",-->
+<!--                        elementType: "geometry.stroke",-->
+<!--                        stylers: [{ color: "#4caf50" }, { weight: 2 }]-->
+<!--                    },-->
+<!--                    {-->
+<!--                        featureType: "landscape.natural",-->
+<!--                        elementType: "geometry.fill",-->
+<!--                        stylers: [{ color: "#e8f5e8" }]-->
+<!--                    },-->
+<!--                    {-->
+<!--                        featureType: "water",-->
+<!--                        elementType: "geometry.fill",-->
+<!--                        stylers: [{ color: "#81c784" }, { lightness: 20 }]-->
+<!--                    }-->
+<!--                ]-->
+<!--            });-->
+
+<!--            // InfoWindow 초기화-->
+<!--            infoWindow = new google.maps.InfoWindow();-->
+
+<!--            // 각 작물 마커 생성-->
+<!--            cropData.forEach(data => {-->
+<!--                createCustomMarker(data);-->
+<!--            });-->
+
+<!--            // 전라남도 경계 폴리곤 추가 (대략적인 경계)-->
+<!--&lt;!&ndash;            const jeonnamBoundary = [&ndash;&gt;-->
+<!--&lt;!&ndash;                { lat: 35.5, lng: 126.0 },&ndash;&gt;-->
+<!--&lt;!&ndash;                { lat: 35.5, lng: 127.5 },&ndash;&gt;-->
+<!--&lt;!&ndash;                { lat: 34.0, lng: 127.5 },&ndash;&gt;-->
+<!--&lt;!&ndash;                { lat: 34.0, lng: 126.0 }&ndash;&gt;-->
+<!--&lt;!&ndash;            ];&ndash;&gt;-->
+
+<!--            const provincePolygon = new google.maps.Polygon({-->
+<!--                paths: jeonnamBoundary,-->
+<!--                strokeColor: '#4caf50',-->
+<!--                strokeOpacity: 0.8,-->
+<!--                strokeWeight: 2,-->
+<!--                fillColor: '#e8f5e8',-->
+<!--                fillOpacity: 0.1-->
+<!--            });-->
+
+<!--            provincePolygon.setMap(map);-->
+<!--        }-->
+
+<!--        function createCustomMarker(data) {-->
+<!--            // 커스텀 마커 HTML 생성-->
+<!--            const markerElement = document.createElement('div');-->
+<!--            markerElement.className = `custom-marker ${data.className}`;-->
+<!--            markerElement.innerHTML = data.emoji;-->
+
+<!--            // 기본 마커 생성 (AdvancedMarkerElement 대신 일반 마커 사용)-->
+<!--            const marker = new google.maps.Marker({-->
+<!--                position: { lat: data.lat, lng: data.lng },-->
+<!--                map: map,-->
+<!--                title: `${data.region} ${data.crop}`,-->
+<!--                icon: {-->
+<!--                    url: createMarkerIcon(data.emoji, data.className),-->
+<!--                    scaledSize: new google.maps.Size(60, 60),-->
+<!--                    anchor: new google.maps.Point(30, 30)-->
+<!--                }-->
+<!--            });-->
+
+<!--            // InfoWindow 내용 생성-->
+<!--            const infoContent = `-->
+<!--                <div class="info-window">-->
+<!--                    <h3>${data.crop} (${data.region})</h3>-->
+<!--                    <p><strong>지역:</strong> ${data.region}</p>-->
+<!--                    <p><strong>총생산량:</strong> ${data.production}톤</p>-->
+<!--                    <p><strong>평균가격:</strong> ${data.price}원/kg</p>-->
+<!--                    <p><em>※ 데이터는 예시용입니다.</em></p>-->
+<!--                </div>-->
+<!--            `;-->
+
+<!--            // 클릭 이벤트 추가-->
+<!--            marker.addListener("click", () => {-->
+<!--                infoWindow.setContent(infoContent);-->
+<!--                infoWindow.open(map, marker);-->
+<!--            });-->
+
+<!--            // 호버 효과 (마우스 오버/아웃)-->
+<!--            marker.addListener("mouseover", () => {-->
+<!--                marker.setIcon({-->
+<!--                    url: createMarkerIcon(data.emoji, data.className, true),-->
+<!--                    scaledSize: new google.maps.Size(72, 72),-->
+<!--                    anchor: new google.maps.Point(36, 36)-->
+<!--                });-->
+<!--            });-->
+
+<!--            marker.addListener("mouseout", () => {-->
+<!--                marker.setIcon({-->
+<!--                    url: createMarkerIcon(data.emoji, data.className),-->
+<!--                    scaledSize: new google.maps.Size(60, 60),-->
+<!--                    anchor: new google.maps.Point(30, 30)-->
+<!--                });-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 마커 아이콘 SVG 생성 함수-->
+<!--        function createMarkerIcon(emoji, className, isHovered = false) {-->
+<!--            const size = isHovered ? 72 : 60;-->
+<!--            const fontSize = isHovered ? 36 : 30;-->
+
+<!--            let backgroundColor;-->
+<!--            switch(className) {-->
+<!--                case 'strawberry':-->
+<!--                    backgroundColor = '#f48fb1';-->
+<!--                    break;-->
+<!--                case 'garlic':-->
+<!--                    backgroundColor = '#f5f5f5';-->
+<!--                    break;-->
+<!--                case 'peach':-->
+<!--                    backgroundColor = '#ffab91';-->
+<!--                    break;-->
+<!--                case 'onion':-->
+<!--                    backgroundColor = '#fff3e0';-->
+<!--                    break;-->
+<!--                default:-->
+<!--                    backgroundColor = '#e8f5e8';-->
+<!--            }-->
+
+<!--            const svg = `-->
+<!--                <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">-->
+<!--                    <circle cx="${size/2}" cy="${size/2}" r="${size/2-3}"-->
+<!--                            fill="${backgroundColor}"-->
+<!--                            stroke="white"-->
+<!--                            stroke-width="3"-->
+<!--                            filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"/>-->
+<!--                    <text x="${size/2}" y="${size/2}"-->
+<!--                          text-anchor="middle"-->
+<!--                          dominant-baseline="central"-->
+<!--                          font-size="${fontSize}"-->
+<!--                          font-family="Arial, sans-serif">${emoji}</text>-->
+<!--                </svg>-->
+<!--            `;-->
+
+<!--            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);-->
+<!--        }-->
+
+<!--        // Google Maps API 로드 실패 시 처리-->
+<!--        window.gm_authFailure = function() {-->
+<!--            document.getElementById('map').innerHTML =-->
+<!--                '<div class="loading" style="color: #f44336;">Google Maps API 인증에 실패했습니다. API 키를 확인해주세요.</div>';-->
+<!--        };-->
+
+<!--        // 에러 핸들링-->
+<!--        window.addEventListener('error', function(e) {-->
+<!--            if (e.message && e.message.includes('Google')) {-->
+<!--                document.getElementById('map').innerHTML =-->
+<!--                    '<div class="loading" style="color: #f44336;">Google Maps 로드 중 오류가 발생했습니다.</div>';-->
+<!--            }-->
+<!--        });-->
+<!--    </script>-->
+
+<!--    &lt;!&ndash; Google Maps API 로드 &ndash;&gt;-->
+<!--    <script async defer-->
+<!--            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap">-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
+<!--&lt;!&ndash;<!DOCTYPE html>&ndash;&gt;-->
+<!--&lt;!&ndash;<html lang="ko">&ndash;&gt;-->
+<!--&lt;!&ndash;<head>&ndash;&gt;-->
+<!--&lt;!&ndash;    <meta charset="UTF-8">&ndash;&gt;-->
+<!--&lt;!&ndash;    <meta name="viewport" content="width=device-width, initial-scale=1.0">&ndash;&gt;-->
+<!--&lt;!&ndash;    <title>전라남도 작물 생산량 플랜트맵</title>&ndash;&gt;-->
+<!--&lt;!&ndash;    <style>&ndash;&gt;-->
+<!--&lt;!&ndash;        * {&ndash;&gt;-->
+<!--&lt;!&ndash;            margin: 0;&ndash;&gt;-->
+<!--&lt;!&ndash;            padding: 0;&ndash;&gt;-->
+<!--&lt;!&ndash;            box-sizing: border-box;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        body {&ndash;&gt;-->
+<!--&lt;!&ndash;            font-family: 'Arial', sans-serif;&ndash;&gt;-->
+<!--&lt;!&ndash;            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);&ndash;&gt;-->
+<!--&lt;!&ndash;            min-height: 100vh;&ndash;&gt;-->
+<!--&lt;!&ndash;            display: flex;&ndash;&gt;-->
+<!--&lt;!&ndash;            justify-content: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            align-items: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            padding: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .container {&ndash;&gt;-->
+<!--&lt;!&ndash;            background: white;&ndash;&gt;-->
+<!--&lt;!&ndash;            border-radius: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;            box-shadow: 0 20px 40px rgba(0,0,0,0.1);&ndash;&gt;-->
+<!--&lt;!&ndash;            padding: 40px;&ndash;&gt;-->
+<!--&lt;!&ndash;            max-width: 1200px;&ndash;&gt;-->
+<!--&lt;!&ndash;            width: 100%;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        h1 {&ndash;&gt;-->
+<!--&lt;!&ndash;            text-align: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            color: #2e7d32;&ndash;&gt;-->
+<!--&lt;!&ndash;            margin-bottom: 30px;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-size: 2.5em;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-weight: bold;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .map-container {&ndash;&gt;-->
+<!--&lt;!&ndash;            position: relative;&ndash;&gt;-->
+<!--&lt;!&ndash;            width: 100%;&ndash;&gt;-->
+<!--&lt;!&ndash;            height: 700px;&ndash;&gt;-->
+<!--&lt;!&ndash;            border-radius: 15px;&ndash;&gt;-->
+<!--&lt;!&ndash;            border: 3px solid #4caf50;&ndash;&gt;-->
+<!--&lt;!&ndash;            overflow: hidden;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        #map {&ndash;&gt;-->
+<!--&lt;!&ndash;            width: 100%;&ndash;&gt;-->
+<!--&lt;!&ndash;            height: 100%;&ndash;&gt;-->
+<!--&lt;!&ndash;            border-radius: 12px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .legend {&ndash;&gt;-->
+<!--&lt;!&ndash;            position: absolute;&ndash;&gt;-->
+<!--&lt;!&ndash;            top: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;            right: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;            background: rgba(255,255,255,0.95);&ndash;&gt;-->
+<!--&lt;!&ndash;            padding: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;            border-radius: 10px;&ndash;&gt;-->
+<!--&lt;!&ndash;            box-shadow: 0 5px 15px rgba(0,0,0,0.1);&ndash;&gt;-->
+<!--&lt;!&ndash;            backdrop-filter: blur(10px);&ndash;&gt;-->
+<!--&lt;!&ndash;            z-index: 1000;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .legend h3 {&ndash;&gt;-->
+<!--&lt;!&ndash;            color: #2e7d32;&ndash;&gt;-->
+<!--&lt;!&ndash;            margin-bottom: 15px;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-size: 16px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .legend-item {&ndash;&gt;-->
+<!--&lt;!&ndash;            display: flex;&ndash;&gt;-->
+<!--&lt;!&ndash;            align-items: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            margin-bottom: 8px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .legend-icon {&ndash;&gt;-->
+<!--&lt;!&ndash;            width: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;            height: 20px;&ndash;&gt;-->
+<!--&lt;!&ndash;            border-radius: 50%;&ndash;&gt;-->
+<!--&lt;!&ndash;            margin-right: 10px;&ndash;&gt;-->
+<!--&lt;!&ndash;            border: 1px solid white;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .strawberry { background: linear-gradient(135deg, #f48fb1, #e91e63); }&ndash;&gt;-->
+<!--&lt;!&ndash;        .garlic { background: linear-gradient(135deg, #f5f5f5, #e0e0e0); }&ndash;&gt;-->
+<!--&lt;!&ndash;        .peach { background: linear-gradient(135deg, #ffab91, #ff5722); }&ndash;&gt;-->
+<!--&lt;!&ndash;        .onion { background: linear-gradient(135deg, #fff3e0, #ffcc80); }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .custom-marker {&ndash;&gt;-->
+<!--&lt;!&ndash;            width: 60px;&ndash;&gt;-->
+<!--&lt;!&ndash;            height: 60px;&ndash;&gt;-->
+<!--&lt;!&ndash;            border-radius: 50%;&ndash;&gt;-->
+<!--&lt;!&ndash;            display: flex;&ndash;&gt;-->
+<!--&lt;!&ndash;            align-items: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            justify-content: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-size: 30px;&ndash;&gt;-->
+<!--&lt;!&ndash;            cursor: pointer;&ndash;&gt;-->
+<!--&lt;!&ndash;            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);&ndash;&gt;-->
+<!--&lt;!&ndash;            box-shadow: 0 4px 15px rgba(0,0,0,0.2);&ndash;&gt;-->
+<!--&lt;!&ndash;            border: 3px solid white;&ndash;&gt;-->
+<!--&lt;!&ndash;            position: relative;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .custom-marker:hover {&ndash;&gt;-->
+<!--&lt;!&ndash;            transform: scale(1.2);&ndash;&gt;-->
+<!--&lt;!&ndash;            box-shadow: 0 8px 25px rgba(0,0,0,0.3);&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .info-window {&ndash;&gt;-->
+<!--&lt;!&ndash;            max-width: 250px;&ndash;&gt;-->
+<!--&lt;!&ndash;            padding: 10px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .info-window h3 {&ndash;&gt;-->
+<!--&lt;!&ndash;            color: #2e7d32;&ndash;&gt;-->
+<!--&lt;!&ndash;            margin-bottom: 8px;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-size: 16px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .info-window p {&ndash;&gt;-->
+<!--&lt;!&ndash;            margin: 5px 0;&ndash;&gt;-->
+<!--&lt;!&ndash;            line-height: 1.4;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-size: 14px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        .loading {&ndash;&gt;-->
+<!--&lt;!&ndash;            display: flex;&ndash;&gt;-->
+<!--&lt;!&ndash;            justify-content: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            align-items: center;&ndash;&gt;-->
+<!--&lt;!&ndash;            height: 100%;&ndash;&gt;-->
+<!--&lt;!&ndash;            color: #2e7d32;&ndash;&gt;-->
+<!--&lt;!&ndash;            font-size: 18px;&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+<!--&lt;!&ndash;    </style>&ndash;&gt;-->
+<!--&lt;!&ndash;</head>&ndash;&gt;-->
+<!--&lt;!&ndash;<body>&ndash;&gt;-->
+<!--&lt;!&ndash;    <div class="container">&ndash;&gt;-->
+<!--&lt;!&ndash;        <h1>🌾 전라남도 작물 생산량 플랜트맵 🌾</h1>&ndash;&gt;-->
+
+<!--&lt;!&ndash;        <div class="map-container">&ndash;&gt;-->
+<!--&lt;!&ndash;            <div id="map">&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="loading">지도 로딩 중...</div>&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+
+<!--&lt;!&ndash;            &lt;!&ndash; 범례 &ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;            <div class="legend">&ndash;&gt;-->
+<!--&lt;!&ndash;                <h3>작물 범례</h3>&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="legend-item">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <div class="legend-icon strawberry"></div>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <span>딸기</span>&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="legend-item">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <div class="legend-icon garlic"></div>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <span>마늘</span>&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="legend-item">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <div class="legend-icon peach"></div>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <span>복숭아</span>&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="legend-item">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <div class="legend-icon onion"></div>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <span>양파</span>&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+<!--&lt;!&ndash;        </div>&ndash;&gt;-->
+<!--&lt;!&ndash;    </div>&ndash;&gt;-->
+
+<!--&lt;!&ndash;    <script>&ndash;&gt;-->
+<!--&lt;!&ndash;        let map;&ndash;&gt;-->
+<!--&lt;!&ndash;        let infoWindow;&ndash;&gt;-->
+
+<!--&lt;!&ndash;        // 작물 데이터 (실제 좌표)&ndash;&gt;-->
+<!--&lt;!&ndash;        const cropData = [&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "딸기",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "나주시",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "15,680",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "8,450",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 35.0160,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.7107,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🍓",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "strawberry"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "마늘",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "해남군",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "32,940",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "4,580",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 34.5736,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.5988,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🧄",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "garlic"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "복숭아",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "무안군",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "8,560",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "6,320",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 34.9901,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.4816,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🍑",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "peach"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "양파",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "고흥군",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "89,560",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "1,320",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 34.6117,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 127.2853,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🧅",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "onion"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "딸기",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "영암군",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "22,120",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "8,890",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 34.8009,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.6967,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🍓",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "strawberry"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "마늘",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "담양군",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "18,340",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "4,200",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 35.3214,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.9881,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🧄",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "garlic"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "복숭아",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "목포시",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "5,840",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "6,920",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 34.8118,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.3922,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🍑",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "peach"&ndash;&gt;-->
+<!--&lt;!&ndash;            },&ndash;&gt;-->
+<!--&lt;!&ndash;            {&ndash;&gt;-->
+<!--&lt;!&ndash;                crop: "양파",&ndash;&gt;-->
+<!--&lt;!&ndash;                region: "완도군",&ndash;&gt;-->
+<!--&lt;!&ndash;                production: "67,230",&ndash;&gt;-->
+<!--&lt;!&ndash;                price: "1,080",&ndash;&gt;-->
+<!--&lt;!&ndash;                lat: 34.3110,&ndash;&gt;-->
+<!--&lt;!&ndash;                lng: 126.7552,&ndash;&gt;-->
+<!--&lt;!&ndash;                emoji: "🧅",&ndash;&gt;-->
+<!--&lt;!&ndash;                className: "onion"&ndash;&gt;-->
+<!--&lt;!&ndash;            }&ndash;&gt;-->
+<!--&lt;!&ndash;        ];&ndash;&gt;-->
+
+<!--&lt;!&ndash;        function initMap() {&ndash;&gt;-->
+<!--&lt;!&ndash;            // 전라남도 중심 좌표&ndash;&gt;-->
+<!--&lt;!&ndash;            const jeonnamCenter = { lat: 34.8679, lng: 126.991 };&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // 지도 초기화&ndash;&gt;-->
+<!--&lt;!&ndash;            map = new google.maps.Map(document.getElementById("map"), {&ndash;&gt;-->
+<!--&lt;!&ndash;                zoom: 9,&ndash;&gt;-->
+<!--&lt;!&ndash;                center: jeonnamCenter,&ndash;&gt;-->
+<!--&lt;!&ndash;                mapTypeId: 'terrain',&ndash;&gt;-->
+<!--&lt;!&ndash;                styles: [&ndash;&gt;-->
+<!--&lt;!&ndash;                    {&ndash;&gt;-->
+<!--&lt;!&ndash;                        featureType: "administrative",&ndash;&gt;-->
+<!--&lt;!&ndash;                        elementType: "geometry.stroke",&ndash;&gt;-->
+<!--&lt;!&ndash;                        stylers: [{ color: "#4caf50" }, { weight: 2 }]&ndash;&gt;-->
+<!--&lt;!&ndash;                    },&ndash;&gt;-->
+<!--&lt;!&ndash;                    {&ndash;&gt;-->
+<!--&lt;!&ndash;                        featureType: "landscape",&ndash;&gt;-->
+<!--&lt;!&ndash;                        elementType: "geometry.fill",&ndash;&gt;-->
+<!--&lt;!&ndash;                        stylers: [{ color: "#e8f5e8" }]&ndash;&gt;-->
+<!--&lt;!&ndash;                    }&ndash;&gt;-->
+<!--&lt;!&ndash;                ]&ndash;&gt;-->
+<!--&lt;!&ndash;            });&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // InfoWindow 초기화&ndash;&gt;-->
+<!--&lt;!&ndash;            infoWindow = new google.maps.InfoWindow();&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // 각 작물 마커 생성&ndash;&gt;-->
+<!--&lt;!&ndash;            cropData.forEach(data => {&ndash;&gt;-->
+<!--&lt;!&ndash;                createCustomMarker(data);&ndash;&gt;-->
+<!--&lt;!&ndash;            });&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        function createCustomMarker(data) {&ndash;&gt;-->
+<!--&lt;!&ndash;            // 커스텀 마커 HTML 생성&ndash;&gt;-->
+<!--&lt;!&ndash;            const markerElement = document.createElement('div');&ndash;&gt;-->
+<!--&lt;!&ndash;            markerElement.className = `custom-marker ${data.className}`;&ndash;&gt;-->
+<!--&lt;!&ndash;            markerElement.innerHTML = data.emoji;&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // AdvancedMarkerElement 사용 (새로운 Google Maps API)&ndash;&gt;-->
+<!--&lt;!&ndash;            const marker = new google.maps.marker.AdvancedMarkerElement({&ndash;&gt;-->
+<!--&lt;!&ndash;                position: { lat: data.lat, lng: data.lng },&ndash;&gt;-->
+<!--&lt;!&ndash;                map: map,&ndash;&gt;-->
+<!--&lt;!&ndash;                content: markerElement,&ndash;&gt;-->
+<!--&lt;!&ndash;                title: `${data.region} ${data.crop}`&ndash;&gt;-->
+<!--&lt;!&ndash;            });&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // InfoWindow 내용 생성&ndash;&gt;-->
+<!--&lt;!&ndash;            const infoContent = `&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="info-window">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <h3>${data.crop} (${data.region})</h3>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <p><strong>지역:</strong> ${data.region}</p>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <p><strong>총생산량:</strong> ${data.production}톤</p>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <p><strong>평균가격:</strong> ${data.price}원/kg</p>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <p><em>※ 데이터는 예시용입니다.</em></p>&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--&lt;!&ndash;            `;&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // 클릭 이벤트 추가&ndash;&gt;-->
+<!--&lt;!&ndash;            marker.addListener("click", () => {&ndash;&gt;-->
+<!--&lt;!&ndash;                infoWindow.setContent(infoContent);&ndash;&gt;-->
+<!--&lt;!&ndash;                infoWindow.open(map, marker);&ndash;&gt;-->
+<!--&lt;!&ndash;            });&ndash;&gt;-->
+
+<!--&lt;!&ndash;            // 호버 효과를 위한 이벤트 (마커 요소에 직접 추가)&ndash;&gt;-->
+<!--&lt;!&ndash;            markerElement.addEventListener('mouseenter', () => {&ndash;&gt;-->
+<!--&lt;!&ndash;                markerElement.style.transform = 'scale(1.2)';&ndash;&gt;-->
+<!--&lt;!&ndash;                markerElement.style.zIndex = '1000';&ndash;&gt;-->
+<!--&lt;!&ndash;            });&ndash;&gt;-->
+
+<!--&lt;!&ndash;            markerElement.addEventListener('mouseleave', () => {&ndash;&gt;-->
+<!--&lt;!&ndash;                markerElement.style.transform = 'scale(1)';&ndash;&gt;-->
+<!--&lt;!&ndash;                markerElement.style.zIndex = 'auto';&ndash;&gt;-->
+<!--&lt;!&ndash;            });&ndash;&gt;-->
+<!--&lt;!&ndash;        }&ndash;&gt;-->
+
+<!--&lt;!&ndash;        // Google Maps API 로드 실패 시 처리&ndash;&gt;-->
+<!--&lt;!&ndash;        window.gm_authFailure = function() {&ndash;&gt;-->
+<!--&lt;!&ndash;            document.getElementById('map').innerHTML =&ndash;&gt;-->
+<!--&lt;!&ndash;                '<div class="loading" style="color: #f44336;">Google Maps API 키를 확인해주세요.</div>';&ndash;&gt;-->
+<!--&lt;!&ndash;        };&ndash;&gt;-->
+<!--&lt;!&ndash;    </script>&ndash;&gt;-->
+
+<!--&lt;!&ndash;    &lt;!&ndash; Google Maps API 로드 &ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;    <script async defer&ndash;&gt;-->
+<!--&lt;!&ndash;            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap&libraries=marker">&ndash;&gt;-->
+<!--&lt;!&ndash;    </script>&ndash;&gt;-->
+<!--&lt;!&ndash;</body>&ndash;&gt;-->
+<!--&lt;!&ndash;</html>&ndash;&gt;-->
