@@ -152,7 +152,7 @@ def page_not_found(error):
 #------------------------------------------------가격 동향 페이지 추가---------------------------------------
 
 @app.route("/price")
-def index():
+def price():
     results = {}
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -204,7 +204,7 @@ def index():
         except Exception as e:
             results[name] = None  # 오류 발생 시 예외 처리
 
-    return render_template("index.html", results=results)
+    return render_template("price.html", results=results)
 #------------------------------------------------가격 동향 페이지 끝-------------------------------------
 
 if __name__ == '__main__':
