@@ -36,7 +36,7 @@ def root():
     # 📌 2. 생산량 그래프 데이터 (일별 → 연평균)
     df_harvest = pd.read_csv('static/data/havestdata_t.csv')
     df_harvest['연도'] = pd.to_datetime(df_harvest['날짜']).dt.year
-    grouped = df_harvest.groupby('연도')[['양파', '마늘', '딸기', '복숭아']].mean().round(1)
+    grouped = df_harvest.groupby('연도')[['양파', '마늘', '딸기', '복숭아']].sum().round(1)
 
     years = grouped.index.tolist()
     onion = grouped['양파'].tolist()
@@ -53,15 +53,31 @@ def root():
     # ✅ '깐마늘(국산)'을 '마늘'로 통일
     df_price.rename(columns={'깐마늘(국산)': '마늘'}, inplace=True)
 
+    df_price_oni = df_price[['양파','연도']].copy()
+    df_price_str = df_price[['딸기', '연도']].copy()
+    df_price_pch = df_price[['복숭아', '연도']].copy()
+    df_price_gar = df_price[['마늘', '연도']].copy()
+
+
+
+    df_price_str = df_price_str[df_price_str['딸기'] != 0] * 10
+    df_price_oni = df_price_oni[df_price_oni['양파'] != 0]
+    df_price_pch = df_price_pch[df_price_pch['복숭아'] != 0]
+    df_price_gar = df_price_gar[df_price_gar['마늘'] != 0]
+
+
     # 📌 연도별 평균 계산
-    grouped_price = df_price.groupby('연도')[['마늘', '딸기', '복숭아', '양파']].mean().round(1)
+    grouped_price_str = df_price_str.groupby('연도')[['딸기']].mean().round(1)
+    grouped_price_oni = df_price_oni.groupby('연도')[['양파']].mean().round(1)
+    grouped_price_pch = df_price_pch.groupby('연도')[['복숭아']].mean().round(1)
+    grouped_price_gar = df_price_gar.groupby('연도')[['마늘']].mean().round(1)
 
     # 📌 리스트로 변환
-    price_years = grouped_price.index.tolist()
-    price_onion = grouped_price['양파'].tolist()
-    price_garlic = grouped_price['마늘'].tolist()
-    price_strawberry = grouped_price['딸기'].tolist()
-    price_peach = grouped_price['복숭아'].tolist()
+    price_years = grouped_price_str.index.tolist()
+    price_onion = grouped_price_oni['양파'].tolist()
+    price_garlic = grouped_price_gar['마늘'].tolist()
+    price_strawberry = grouped_price_str['딸기'].tolist()
+    price_peach = grouped_price_pch['복숭아'].tolist()
 
     # ✅ 품목별: 연도별 생산량 합계 + 가격 평균
     item_files = {
