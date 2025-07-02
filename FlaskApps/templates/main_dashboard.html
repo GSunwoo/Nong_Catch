@@ -315,14 +315,23 @@
 <!-- 🏆 상품 테이블과 신규 고객 박스 -->
 <div class="bottom-section">
     <div class="product-table styled-box">
-        <div style="display: flex; justify-content: space-between; align-items: center; position: relative;" class="crop-selector">
-            <div></div>
-            <h3 class="chart-title">📊 연도별 품목별 생산량 & 평균가격</h3>
-            <select id="itemSelector" style="height: 40px; font-size:15px; padding: 5px 20px; width: 100px;">
+
+        <!-- 제목: 가운데 정렬 -->
+        <div style="text-align: center; margin-bottom: 10px;">
+            <h3 class="chart-title" style="margin: 0;">📊 연도별 품목별 생산량 & 평균가격</h3>
+        </div>
+
+        <!-- 셀렉트 + 상세보기 버튼 -->
+        <div class="crop-selector"
+             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <!-- 왼쪽: 셀렉트 박스 -->
+            <select id="itemSelector" style="height: 40px; font-size: 15px; padding: 10px 20px; width: 100px;">
                 {% for item in production_price_data %}
                 <option value="{{ item }}" {% if loop.first %}selected{% endif %}>{{ item }}</option>
                 {% endfor %}
             </select>
+
+            <!-- 오른쪽: 상세 보기 버튼 -->
             <a href="{{ url_for('dashboard') }}" style="
               background-color: #FFA726;
               color: white;
@@ -419,12 +428,50 @@
 </div>
 <!-- 📉 맨 아래 넓은 생산량 그래프 -->
 <div class="styled-box" style="margin-top: 50px;">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 class="chart-title">🌤️ 연도별 월별 기후 변화</h3>
+    <div style="text-align: center; margin-top: 50px; margin-bottom: 10px;">
+        <h3 class="chart-title" style="margin: 0;">🌤️ 월별 기후 변화</h3>
+    </div>
+
+    <!-- 📌 연도 선택 + 상세보기 버튼 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <!-- 왼쪽: 연도 선택 -->
         <div>
-            <button onclick="changeYear(-1)">⬅</button>
-            <span id="yearLabel" style="font-weight: bold; margin: 0 10px;">{{ default_weather_year }}</span>
-            <button onclick="changeYear(1)">➡</button>
+            <button onclick="changeYear(-1)" style="
+      padding: 6px 12px;
+      background-color: #FFE0B2;
+      border: 1px solid #FFCC80;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    ">⬅
+            </button>
+
+            <span id="yearLabel"
+                  style="font-weight: bold; margin: 0 10px; font-size: 16px;">{{ default_weather_year }}</span>
+
+            <button onclick="changeYear(1)" style="
+              padding: 6px 12px;
+              background-color: #FFE0B2;
+              border: 1px solid #FFCC80;
+              border-radius: 6px;
+              font-weight: bold;
+              cursor: pointer;
+            ">➡
+            </button>
+        </div>
+
+        <!-- 오른쪽: 상세 보기 버튼 -->
+        <div>
+            <a href="{{ url_for('cy_dashboard') }}" style="
+              background-color: #FFA726;
+              color: white;
+              padding: 8px 16px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: bold;
+              font-size: 14px;
+              box-shadow: 0 4px 10px rgba(255,167,38,0.2);
+            ">🔎 상세 보기</a>
         </div>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">

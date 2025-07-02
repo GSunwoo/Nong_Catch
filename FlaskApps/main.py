@@ -1,5 +1,5 @@
 # HTML파일을 템플릿으로 사용하기 위한 모듈 임포트
-from flask import Flask, render_template, request
+from flask import Flask, render_template
 # 화면이동, 세션처리 등을 위한 모듈 임포트
 from flask import redirect, session, url_for
 # 문자열 깨짐 방지를 위한 인코딩 처리를 위한 모듈 임포트
