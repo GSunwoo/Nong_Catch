@@ -5,9 +5,30 @@ from flask import redirect, session, url_for
 # 문자열 깨짐 방지를 위한 인코딩 처리를 위한 모듈 임포트
 from markupsafe import escape
 import pandas as pd
+from _datetime import datetime
+import requests
 
 # 플라스크 앱 초기화
 app = Flask(__name__)
+
+#-----------------------------------------------api 추가------------------------------------
+ITEMS = {
+    "양파": {"category": "200", "code": "245"},
+    "마늘": {"category": "200", "code": "248"},
+    "딸기": {"category": "200", "code": "226"},
+    "복숭아": {"category": "400", "code": "413"}
+}
+
+# API 키
+API_KEY = "f42c857e-d5bc-47e7-a59e-5d2de8725e9a"
+API_ID = "dudns5552"
+BASE_URL = "http://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
+#-----------------------------------------------api 추가 끝-------------------------------------
+
+
+
+
+
 
 
 # 앱을 최초로 실행했을때의 화면. 주로 index화면이라고 한다.
@@ -128,6 +149,63 @@ def page_not_found(error):
     print("오류 로그:", error)  # 서버콘솔에 출력
     return render_template('404.html'), 404
 
+#------------------------------------------------가격 동향 페이지 추가---------------------------------------
+
+@app.route("/price")
+def index():
+    results = {}
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    for name, info in ITEMS.items():
+        params = {
+            "p_cert_key": API_KEY,
+            "p_cert_id": API_ID,
+            "p_returntype": "json",
+            "p_product_cls_code": "01",
+            "p_item_category_code": info["category"],
+            "p_country_code": "2401",
+            "p_regday": today,
+            "p_convert_kg_yn": "N"
+        }
+
+        try:
+            response = requests.get(BASE_URL, params=params)
+            data = response.json()
+
+            # 필터링: 해당 itemcode + 등급='상품'
+            for item in data["price"]:
+                if item["itemcode"] == info["code"] and item["rank"] == "상품":
+                    price_today = float(item["dpr1"] or 0)
+                    price_yesterday = float(item["dpr2"] or 0)
+                    price_week = float(item["dpr3"] or 0)
+                    price_normal = float(item["dpr7"] or 0)
+
+                    # 값 보정
+                    actual_price = price_today if price_today else price_yesterday
+
+                    # 퍼센트 계산
+                    diff_normal = round(((actual_price - price_normal) / price_normal) * 100, 1) if price_normal else 0
+                    diff_week = round(((actual_price - price_week) / price_week) * 100, 1) if price_week else 0
+
+                    results[name] = {
+                        "prices": {
+                            "평년": price_normal,
+                            "1주일전": price_week,
+                            "오늘": actual_price
+                        },
+                        "percent": {
+                            "평년": diff_normal,
+                            "1주일전": diff_week
+                        }
+                    }
+                    break
+            else:
+                results[name] = None  # 수확철 아님
+        except Exception as e:
+            results[name] = None  # 오류 발생 시 예외 처리
+
+    return render_template("index.html", results=results)
+#------------------------------------------------가격 동향 페이지 끝-------------------------------------
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)

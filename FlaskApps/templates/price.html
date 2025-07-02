@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>농산물 가격 비교</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-box { width: 400px; margin-bottom: 50px; }
+        .comment { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>📊 농산물 가격 비교</h1>
+    {% for item, data in results.items() %}
+        <div class="chart-box">
+            <h2>{{ item }}</h2>
+
+            {% if data %}
+                <canvas id="chart_{{ loop.index }}"></canvas>
+                <div class="comment">
+                    평년 대비 {{ data.percent.평년 | abs }}%
+                    {{ '비쌉니다' if data.percent.평년 > 0 else '쌉니다' }}.<br>
+                    1주일 전 대비 {{ data.percent["1주일전"] | abs }}%
+                    {{ '비쌉니다' if data.percent["1주일전"] > 0 else '쌉니다' }}.
+                </div>
+                <script>
+                    const ctx{{ loop.index }} = document.getElementById("chart_{{ loop.index }}").getContext('2d');
+                    new Chart(ctx{{ loop.index }}, {
+                        type: 'bar',
+                        data: {
+                            labels: ['평년', '1주일전', '오늘'],
+                            datasets: [{
+                                label: '가격 (원)',
+                                data: [
+                                    {{ data.prices.평년 }},
+                                    {{ data.prices["1주일전"] }},
+                                    {{ data.prices.오늘 }}
+                                ],
+                                backgroundColor: ['#a3d2ca', '#5eaaa8', '#056676']
+                            }]
+                        },
+                        options: {
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { enabled: true },
+                                datalabels: {
+                                    anchor: 'end',
+                                    align: 'end',
+                                    formatter: function(value) {
+                                        return value + '원';
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '가격 (원)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                </script>
+            {% else %}
+                <p>아직 수확철이 아니에용~ 😢</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>
