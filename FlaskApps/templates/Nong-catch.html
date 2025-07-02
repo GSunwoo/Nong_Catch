@@ -287,11 +287,11 @@
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-value" id="avgPrice">-</div>
-                <div class="stat-label">평균 가격 (원/kg)</div>
+                <div class="stat-label">평균 가격 (원)</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="avgProduction">-</div>
-                <div class="stat-label">평균 생산량 (톤)</div>
+                <div class="stat-label">평균 생산량</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="correlation">-</div>
@@ -470,7 +470,7 @@
                 data: {
                     labels: months,
                     datasets: [{
-                        label: '가격 (원/kg)',
+                        label: '가격 (원)',
                         data: [],
                         borderColor: '#FF7F00',
                         backgroundColor: 'rgba(255, 183, 78, 0.3)',
@@ -513,7 +513,7 @@
                 data: {
                     labels: months,
                     datasets: [{
-                        label: '생산량 (톤)',
+                        label: '생산량',
                         data: [],
                         backgroundColor: 'rgba(255, 183, 78, 0.8)',
                         borderColor: '#FF8F00',
@@ -569,7 +569,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: '생산량 (톤)'
+                                text: '생산량'
                             },
                             grid: {
                                 color: 'rgba(0,0,0,0.1)'
@@ -578,7 +578,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: '가격 (원/kg)'
+                                text: '가격 (원)'
                             },
                             grid: {
                                 color: 'rgba(0,0,0,0.1)'
