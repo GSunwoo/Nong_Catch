@@ -156,6 +156,25 @@
           color: #5D4037;
           box-shadow: inset 0 0 5px rgba(255, 167, 38, 0.1);
         }
+
+        .crop-selector select {
+            background: white;
+            border: 2px solid #FFE0B2;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #E65100;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+        }
+
+        .crop-selector select:focus {
+            outline: none;
+            border-color: #FF8F00;
+            box-shadow: 0 5px 15px rgba(255, 143, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -296,44 +315,87 @@
 <!-- 🏆 상품 테이블과 신규 고객 박스 -->
 <div class="bottom-section">
     <div class="product-table styled-box">
-        <h3 class="chart-title">🏆 상위 판매 상품</h3>
-        <table>
-            <thead>
-            <tr>
-                <th>상품</th>
-                <th>주문</th>
-                <th>가격</th>
-                <th>광고비</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>양파</td>
-                <td>8000</td>
-                <td>2300</td>
-                <td>₩9,500</td>
-            </tr>
-            <tr>
-                <td>마늘</td>
-                <td>6000</td>
-                <td>4200</td>
-                <td>₩4,700</td>
-            </tr>
-            <tr>
-                <td>딸기</td>
-                <td>3000</td>
-                <td>9900</td>
-                <td>₩4,500</td>
-            </tr>
-            <tr>
-                <td>복숭아</td>
-                <td>2000</td>
-                <td>5800</td>
-                <td>₩2,500</td>
-            </tr>
-            </tbody>
-        </table>
+        <div style="display: flex; justify-content: space-between; align-items: center;" class="crop-selector">
+            <h3 class="chart-title">📊 연도별 품목별 생산량 & 평균가격</h3>
+            <select id="itemSelector" style="height: 40px; font-size:15px; padding: 5px 20px; width: 100px;">
+                {% for item in production_price_data %}
+                <option value="{{ item }}" {% if loop.first %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="chart-area">
+            {% for item, data in production_price_data.items() %}
+            <div id="graph_{{ item }}"
+                 style="margin: 30px auto; max-width: 800px; {% if loop.first %}display: block;{% else %}display: none;{% endif %}">
+                <h4 style="text-align:center; color:#E65100;">{{ item }} (생산량: 막대 / 가격: 꺾은선)</h4>
+                <canvas id="chart_{{ item }}" height="200"></canvas>
+                <script>
+                    const ctx_{{ item }} = document.getElementById("chart_{{ item }}").getContext("2d");
+                    new Chart(ctx_{{ item }}, {
+                      type: 'bar',
+                      data: {
+                        labels: {{ data.years | tojson }},
+                        datasets: [
+                          {
+                            label: '{{ item }} 생산량',
+                            data: {{ data.production | tojson }},
+                            backgroundColor: 'rgba(255, 167, 38, 0.6)',
+                            borderColor: 'rgba(255, 152, 0, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y1'
+                          },
+                          {
+                            label: '{{ item }} 평균가격',
+                            data: {{ data.price | tojson }},
+                            type: 'line',
+                            borderColor: '#E65100',
+                            backgroundColor: 'rgba(255, 87, 34, 0.2)',
+                            tension: 0.4,
+                            yAxisID: 'y2'
+                          }
+                        ]
+                      },
+                      options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                          y1: {
+                            position: 'left',
+                            title: { display: true, text: '생산량' },
+                            beginAtZero: true
+                          },
+                          y2: {
+                            position: 'right',
+                            title: { display: true, text: '가격 (원)' },
+                            beginAtZero: false,
+                            grid: { drawOnChartArea: false }
+                          }
+                        },
+                        plugins: {
+                          legend: { position: 'top' },
+                          tooltip: { mode: 'index', intersect: false }
+                        }
+                      }
+                    });
+                </script>
+            </div>
+            {% endfor %}
+        </div>
     </div>
+
+    <script>
+        const selector = document.getElementById('itemSelector');
+        selector.addEventListener('change', function () {
+          const allGraphs = document.querySelectorAll('[id^="graph_"]');
+          allGraphs.forEach(div => div.style.display = 'none'); // 모두 숨기기
+          const selected = this.value;
+          if (selected) {
+            const graphDiv = document.getElementById(`graph_${selected}`);
+            if (graphDiv) graphDiv.style.display = 'block'; // 선택된 것만 표시
+          }
+        });
+    </script>
     <div class="styled-box">
         <h3 class="chart-title">🆕 신규 고객</h3>
         <ul>

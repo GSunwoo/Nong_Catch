@@ -23,6 +23,8 @@ def root():
             'price': f"{int(row['연평균가격']):,}원/kg"
         })
 
+    #############################################################################
+    #생산량
     # 📌 2. 생산량 그래프 데이터 (일별 → 연평균)
     df_harvest = pd.read_csv('static/data/havestdata_t.csv')
     df_harvest['연도'] = pd.to_datetime(df_harvest['날짜']).dt.year
@@ -53,6 +55,25 @@ def root():
     price_strawberry = grouped_price['딸기'].tolist()
     price_peach = grouped_price['복숭아'].tolist()
 
+    # ✅ 품목별: 연도별 생산량 합계 + 가격 평균
+    item_files = {
+        '양파': 'static/data/양파_생산량_가격_데이터.csv',
+        '마늘': 'static/data/마늘_생산량_가격_데이터.csv',
+        '딸기': 'static/data/딸기_생산량_가격_데이터.csv',
+        '복숭아': 'static/data/복숭아_생산량_가격_데이터.csv'
+    }
+
+    production_price_data = {}
+    for item, filepath in item_files.items():
+        df = pd.read_csv(filepath)
+        df['연도'] = pd.to_datetime(df['날짜']).dt.year
+        grouped = df.groupby('연도').agg({'생산량': 'sum', '가격': 'mean'}).round(1)
+        production_price_data[item] = {
+            'years': grouped.index.tolist(),
+            'production': grouped['생산량'].tolist(),
+            'price': grouped['가격'].tolist()
+        }
+
     # 📌 템플릿으로 모든 데이터 전달
     return render_template('main_dashboard.html',
                            cards=cards,
@@ -65,7 +86,9 @@ def root():
                            price_onion=price_onion,
                            price_garlic=price_garlic,
                            price_strawberry=price_strawberry,
-                           price_peach=price_peach)
+                           price_peach=price_peach,
+                           production_price_data=production_price_data
+                           )
 
 @app.route('/visual')
 def show_visual():
