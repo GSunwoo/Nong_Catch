@@ -137,7 +137,6 @@ def page_not_found(error):
     print("오류 로그:", error)  # 서버콘솔에 출력
     return render_template('404.html'), 404
 
-#------------------------------------------------가격 동향 페이지 추가---------------------------------------
 
 #------------------------------------------------가격 동향 페이지 추가---------------------------------------
 
@@ -153,9 +152,7 @@ API_KEY = "f42c857e-d5bc-47e7-a59e-5d2de8725e9a"
 API_ID = "dudns5552"
 BASE_URL = "http://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
 
-from flask import Flask, render_template
-from datetime import datetime
-import requests
+
 
 app = Flask(__name__)
 
@@ -200,6 +197,21 @@ def price():
 
                     # ➕ 오늘 가격이 없으면 어제 가격 사용
                     actual_price = price_today if price_today is not None else price_yesterday
+
+                    #디버깅 출력코드
+                    print(f"\n[📦 원본 아이템 데이터: {name}]")
+                    print(item)
+
+                    print(
+                        f"[📊 {name}] dpr1(오늘): {item.get('dpr1')}, dpr2(어제): {item.get('dpr2')}, dpr3(1주전): {item.get('dpr3')}, dpr7(평년): {item.get('dpr7')}")
+
+                    print(
+                        f"[🔢 변환된 가격] price_today: {price_today}, price_yesterday: {price_yesterday}, actual_price: {actual_price}")
+                    print(f"[🔢 비교 가격] price_week: {price_week}, price_normal: {price_normal}")
+
+                    #디버깅 출력코드
+
+
 
                     is_fruit = name in ["복숭아", "딸기"]
                     is_vegetable = name in ["양파", "마늘"]
@@ -254,11 +266,6 @@ def price():
 
         except Exception as e:
             results[name] = None
-
-        # 📋 디버그 출력
-        print("[🔍 DEBUG] 호출 URL:", response.url)
-        print("[🔍 DEBUG] 응답코드:", response.status_code)
-        print("[🔍 DEBUG] 응답 JSON:", response.text)
 
     return render_template("price.html", results=results)
 
