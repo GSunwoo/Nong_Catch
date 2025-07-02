@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전라남도 작물 경작지 프랜트맵</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #f57c00;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            border-radius: 15px;
+            border: 3px solid #ff9800;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        .year-navigator {
+            position: absolute;
+            top: 10px;
+            right: 50px;
+            background: rgba(255,255,255,0.95);
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .year-navigator button {
+            background: #f57c00;
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .year-navigator button:hover {
+            background: #e65100;
+            transform: scale(1.1);
+        }
+
+        .year-navigator button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .year-display {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f57c00;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            border-radius: 12px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #f57c00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-window {
+            padding: 8px;
+            min-width: 120px;
+            max-width: none;
+            width: auto;
+        }
+
+        .info-window h3 {
+            color: #f57c00;
+            margin-bottom: 6px;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+
+        .info-window p {
+            margin: 3px 0;
+            line-height: 1.3;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #f57c00;
+            font-size: 18px;
+        }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 3000;
+        }
+
+        .debug-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 전라남도 작물 경작지 프랜트맵 🌾</h1>
+
+        <div class="map-container">
+            <div id="map">
+                <div class="loading">Google Maps 로딩 중...</div>
+            </div>
+
+            <!-- 연도 네비게이터 -->
+            <div class="year-navigator">
+                <button id="prevYear" onclick="changeYear(-1)">←</button>
+                <div class="year-display" id="currentYear">2023</div>
+                <button id="nextYear" onclick="changeYear(1)">→</button>
+            </div>
+
+            <!-- 로딩 오버레이 -->
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- 디버그 정보 -->
+            <div id="debugInfo" class="debug-info" style="display: none;">
+                <div>현재 연도: <span id="debugYear"></span></div>
+                <div>마커 개수: <span id="debugMarkers"></span></div>
+                <div>데이터 개수: <span id="debugData"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let infoWindow;
+        let currentYear = 2023;
+        let cropMarkers = [];
+        let csvData = {};
+        let activeInfoWindow = null;
+
+        // 작물별 기본 정보
+        const cropInfo = {
+            "마늘": { emoji: "🧄", className: "garlic", color: "#f5f5f5" },
+            "양파": { emoji: "🧅", className: "onion", color: "#fff3e0" },
+            "딸기": { emoji: "🍓", className: "strawberry", color: "#f48fb1" },
+            "복숭아": { emoji: "🍑", className: "peach", color: "#ffab91" }
+        };
+
+        // 지역별 좌표 정보 (정확한 좌표로 수정)
+        const regionCoordinates = {
+            "해남군": { lat: 34.5736, lng: 126.5988 },
+            "고흥군": { lat: 34.6131, lng: 127.2808 },
+            "보성군": { lat: 34.7714, lng: 127.0803 },
+            "무안군": { lat: 34.9901, lng: 126.4816 },
+            "함평군": { lat: 35.0661, lng: 126.5147 },
+            "신안군": { lat: 34.8276, lng: 126.1060 },
+            "담양군": { lat: 35.3214, lng: 126.9881 },
+            "장성군": { lat: 35.3017, lng: 126.7886 },
+            "곡성군": { lat: 35.2819, lng: 127.2912 },
+            "강진군": { lat: 34.6415, lng: 126.7677 },
+            "순천시": { lat: 34.9506, lng: 127.4872 },
+            "화순군": { lat: 35.0638, lng: 126.9853 }
+        };
+
+        function initMap() {
+            // 로딩 메시지 제거
+            const loadingDiv = document.querySelector('.loading');
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+
+            // 전라남도 중심 좌표
+            const jeonnamCenter = { lat: 34.8679, lng: 126.991 };
+
+            // 지도 초기화
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 9,
+                center: jeonnamCenter,
+                mapTypeId: 'roadmap',
+                mapTypeControl: false,
+                styles: [
+                    {
+                        featureType: "administrative.province",
+                        elementType: "geometry.stroke",
+                        stylers: [{ color: "#2196f3" }, { weight: 2 }]
+                    },
+                    {
+                        featureType: "landscape.natural",
+                        elementType: "geometry.fill",
+                        stylers: [{ color: "#fff3e0" }]
+                    },
+                    {
+                        featureType: "water",
+                        elementType: "geometry.fill",
+                        stylers: [{ color: "#2196f3" }, { lightness: 10 }]
+                    },
+                    {
+                        featureType: "landscape.natural.terrain",
+                        elementType: "all",
+                        stylers: [{ visibility: "off" }]
+                    },
+                    {
+                        featureType: "landscape.man_made",
+                        elementType: "all",
+                        stylers: [{ visibility: "simplified" }]
+                    },
+                    {
+                        featureType: "road.highway",
+                        elementType: "all",
+                        stylers: [{ visibility: "off" }]
+                    },
+                    {
+                        featureType: "road.arterial",
+                        elementType: "all",
+                        stylers: [{ visibility: "off" }]
+                    },
+                    {
+                        featureType: "road.local",
+                        elementType: "all",
+                        stylers: [{ visibility: "off" }]
+                    }
+                ]
+            });
+
+            // InfoWindow 초기화
+            infoWindow = new google.maps.InfoWindow();
+
+            // 디버그 모드 활성화 (개발용)
+            if (window.location.hash === '#debug') {
+                document.getElementById('debugInfo').style.display = 'block';
+            }
+
+            // 초기 데이터 로드
+            loadYearData(currentYear);
+            updateNavigationButtons();
+        }
+
+        async function loadYearData(year) {
+            showLoading(true);
+
+            try {
+                const mockData = await getMockCSVData(year);
+                csvData[year] = mockData;
+                console.log(`${year}년 데이터:`, mockData);
+                updateMarkers(year);
+                updateDebugInfo(year, mockData);
+
+            } catch (error) {
+                console.error('CSV 데이터 로드 실패:', error);
+                showError('데이터를 불러오는 중 오류가 발생했습니다.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 실제 환경에서는 이 함수를 CSV 파일 읽기 함수로 교체해야 합니다
+        async function getMockCSVData(year) {
+            // 시뮬레이션을 위한 지연
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // 년도에 따른 변동 데이터 생성
+            const baseYear = 2023;
+            const yearDiff = year - baseYear;
+            const variation = 1 + (yearDiff * 0.02);
+
+            const data = [
+                // 마늘 데이터 - 3개 지역
+                { crop: "마늘", region: "해남군", production: Math.round(32940 * variation), price: Math.round(4580 * (1 + yearDiff * 0.03)) },
+                { crop: "마늘", region: "고흥군", production: Math.round(28500 * variation), price: Math.round(4650 * (1 + yearDiff * 0.03)) },
+                { crop: "마늘", region: "보성군", production: Math.round(25800 * variation), price: Math.round(4720 * (1 + yearDiff * 0.03)) },
+
+                // 양파 데이터 - 4개 지역
+                { crop: "양파", region: "무안군", production: Math.round(8560 * variation), price: Math.round(6320 * (1 + yearDiff * 0.04)) },
+                { crop: "양파", region: "고흥군", production: Math.round(7200 * variation), price: Math.round(6150 * (1 + yearDiff * 0.04)) },
+                { crop: "양파", region: "함평군", production: Math.round(9800 * variation), price: Math.round(6400 * (1 + yearDiff * 0.04)) },
+                { crop: "양파", region: "신안군", production: Math.round(11200 * variation), price: Math.round(6250 * (1 + yearDiff * 0.04)) },
+
+                // 딸기 데이터 - 5개 지역
+                { crop: "딸기", region: "담양군", production: Math.round(18340 * variation), price: Math.round(4200 * (1 + yearDiff * 0.025)) },
+                { crop: "딸기", region: "장성군", production: Math.round(15600 * variation), price: Math.round(4150 * (1 + yearDiff * 0.025)) },
+                { crop: "딸기", region: "보성군", production: Math.round(12800 * variation), price: Math.round(4300 * (1 + yearDiff * 0.025)) },
+                { crop: "딸기", region: "곡성군", production: Math.round(14200 * variation), price: Math.round(4180 * (1 + yearDiff * 0.025)) },
+                { crop: "딸기", region: "강진군", production: Math.round(16800 * variation), price: Math.round(4220 * (1 + yearDiff * 0.025)) },
+
+                // 복숭아 데이터 - 2개 지역
+                { crop: "복숭아", region: "순천시", production: Math.round(5840 * variation), price: Math.round(6920 * (1 + yearDiff * 0.035)) },
+                { crop: "복숭아", region: "화순군", production: Math.round(4200 * variation), price: Math.round(7100 * (1 + yearDiff * 0.035)) }
+            ];
+
+            return data;
+        }
+
+        function updateMarkers(year) {
+            // 기존 마커 제거
+            cropMarkers.forEach(marker => {
+                marker.setMap(null);
+            });
+            cropMarkers = [];
+
+            // 활성 InfoWindow 닫기
+            if (activeInfoWindow) {
+                activeInfoWindow.close();
+                activeInfoWindow = null;
+            }
+
+            const data = csvData[year];
+            if (!data || data.length === 0) {
+                console.warn(`${year}년 데이터가 없습니다.`);
+                return;
+            }
+
+            console.log(`${year}년 마커 업데이트 시작, 데이터 개수:`, data.length);
+
+            // 새 마커 생성
+            data.forEach((item, index) => {
+                const coordinates = regionCoordinates[item.region];
+                const info = cropInfo[item.crop];
+
+                console.log(`마커 ${index + 1}: ${item.crop} - ${item.region}`, coordinates, info);
+
+                if (coordinates && info) {
+                    // 같은 지역에 여러 작물이 있을 경우 위치를 약간 조정
+                    const sameRegionItems = data.filter(d => d.region === item.region);
+                    const itemIndex = sameRegionItems.findIndex(d => d.crop === item.crop);
+
+                    let adjustedLat = coordinates.lat;
+                    let adjustedLng = coordinates.lng;
+
+                    if (sameRegionItems.length > 1) {
+                        // 여러 작물이 같은 지역에 있을 때 위치 조정
+                        const offset = 0.02;
+                        adjustedLat += (itemIndex - sameRegionItems.length / 2) * offset;
+                        adjustedLng += (itemIndex - sameRegionItems.length / 2) * offset * 0.5;
+                    }
+
+                    const marker = new google.maps.Marker({
+                        position: { lat: adjustedLat, lng: adjustedLng },
+                        map: map,
+                        title: `${item.region} ${item.crop}`,
+                        icon: {
+                            url: createMarkerIcon(info.emoji, info.className),
+                            scaledSize: new google.maps.Size(60, 60),
+                            anchor: new google.maps.Point(30, 30)
+                        }
+                    });
+
+                    // InfoWindow 내용 (연간 총생산량, kg당 평균가격 문구 제거)
+                    const infoContent = `
+                        <div class="info-window">
+                            <h3>${item.crop} (${item.region})</h3>
+                            <p><strong>연도:</strong> ${year}년</p>
+                            <p><strong>지역:</strong> ${item.region}</p>
+<!--                            <p><strong>생산량:</strong> ${item.production.toLocaleString()}톤</p>-->
+<!--                            <p><strong>가격:</strong> ${item.price.toLocaleString()}원/kg</p>-->
+                        </div>
+                    `;
+
+                    // 마우스 오버 시 자동으로 InfoWindow 표시
+                    marker.addListener("mouseover", () => {
+                        // 기존 InfoWindow 닫기
+                        if (activeInfoWindow) {
+                            activeInfoWindow.close();
+                        }
+
+                        infoWindow.setContent(infoContent);
+                        infoWindow.open(map, marker);
+                        activeInfoWindow = infoWindow;
+
+                        // 마커 크기 증가
+                        marker.setIcon({
+                            url: createMarkerIcon(info.emoji, info.className, true),
+                            scaledSize: new google.maps.Size(72, 72),
+                            anchor: new google.maps.Point(36, 36)
+                        });
+                    });
+
+                    // 마우스 아웃 시 마커 크기 원래대로
+                    marker.addListener("mouseout", () => {
+                        marker.setIcon({
+                            url: createMarkerIcon(info.emoji, info.className),
+                            scaledSize: new google.maps.Size(60, 60),
+                            anchor: new google.maps.Point(30, 30)
+                        });
+                    });
+
+                    // 클릭 시에도 InfoWindow 표시
+                    marker.addListener("click", () => {
+                        if (activeInfoWindow) {
+                            activeInfoWindow.close();
+                        }
+
+                        infoWindow.setContent(infoContent);
+                        infoWindow.open(map, marker);
+                        activeInfoWindow = infoWindow;
+                    });
+
+                    cropMarkers.push(marker);
+                    console.log(`마커 생성 완료: ${item.crop} - ${item.region}`);
+                } else {
+                    console.warn(`마커 생성 실패: ${item.crop} - ${item.region}`, '좌표:', coordinates, '정보:', info);
+                }
+            });
+
+            console.log(`총 ${cropMarkers.length}개 마커 생성 완료`);
+        }
+
+        function updateDebugInfo(year, data) {
+            if (document.getElementById('debugInfo').style.display !== 'none') {
+                document.getElementById('debugYear').textContent = year;
+                document.getElementById('debugMarkers').textContent = cropMarkers.length;
+                document.getElementById('debugData').textContent = data ? data.length : 0;
+            }
+        }
+
+        function changeYear(direction) {
+            const newYear = currentYear + direction;
+
+            if (newYear >= 2004 && newYear <= 2023) {
+                currentYear = newYear;
+                document.getElementById('currentYear').textContent = currentYear;
+
+                if (!csvData[currentYear]) {
+                    loadYearData(currentYear);
+                } else {
+                    updateMarkers(currentYear);
+                    updateDebugInfo(currentYear, csvData[currentYear]);
+                }
+
+                updateNavigationButtons();
+            }
+        }
+
+        function updateNavigationButtons() {
+            document.getElementById('prevYear').disabled = currentYear <= 2004;
+            document.getElementById('nextYear').disabled = currentYear >= 2023;
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            document.querySelector('.map-container').appendChild(errorDiv);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 3000);
+        }
+
+        function createMarkerIcon(emoji, className, isHovered = false) {
+            const size = isHovered ? 72 : 60;
+            const fontSize = isHovered ? 36 : 30;
+
+            let backgroundColor;
+            switch(className) {
+                case 'strawberry':
+                    backgroundColor = '#f48fb1';
+                    break;
+                case 'garlic':
+                    backgroundColor = '#f5f5f5';
+                    break;
+                case 'peach':
+                    backgroundColor = '#ffab91';
+                    break;
+                case 'onion':
+                    backgroundColor = '#fff3e0';
+                    break;
+                default:
+                    backgroundColor = '#fff3e0';
+            }
+
+            const svg = `
+                <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="${size/2}" cy="${size/2}" r="${size/2-3}"
+                            fill="${backgroundColor}"
+                            stroke="white"
+                            stroke-width="3"
+                            filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"/>
+                    <text x="${size/2}" y="${size/2}"
+                          text-anchor="middle"
+                          dominant-baseline="central"
+                          font-size="${fontSize}"
+                          font-family="Arial, sans-serif">${emoji}</text>
+                </svg>
+            `;
+
+            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+        }
+
+        // Google Maps API 로드 실패 시 처리
+        window.gm_authFailure = function() {
+            document.getElementById('map').innerHTML =
+                '<div class="loading" style="color: #f44336;">Google Maps API 인증에 실패했습니다. API 키를 확인해주세요.</div>';
+        };
+
+        // 에러 핸들링
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('Google')) {
+                document.getElementById('map').innerHTML =
+                    '<div class="loading" style="color: #f44336;">Google Maps 로드 중 오류가 발생했습니다.</div>';
+            }
+        });
+    </script>
+
+    <!-- Google Maps API 로드 -->
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATcVp3y-83dG4MV04e7NFJBReIqHp25Qk&callback=initMap">
+    </script>
+</body>
+</html>
+
+
+
+
