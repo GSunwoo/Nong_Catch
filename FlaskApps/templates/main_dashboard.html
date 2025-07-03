@@ -206,6 +206,15 @@
             border: 3px solid #ff9800;
             overflow: hidden;
         }
+        .chart-box {
+            width: 20%;
+            height: 300px;
+            margin-left: 30px;
+        }
+        .today-section{
+            justify-content: space-between;
+            display: flex;
+        }
     </style>
 </head>
 <body>
@@ -222,12 +231,12 @@
     {% endfor %}
 </div>
 <div class="chart-price">
-    <div class="chart-area styled-box summary-section">
+    <div class="chart-area styled-box ">
         <div class="card-title">📊 농산물 가격 비교</div>
+        <div class="today-section">
     {% for item, data in results.items() %}
         <div class="chart-box">
             <h2>{{ item }}</h2>
-
             {% if data %}
                 <canvas id="chart_{{ loop.index }}"></canvas>
                 <div class="chart-area">
@@ -281,6 +290,7 @@
             {% endif %}
         </div>
     {% endfor %}
+        </div>
     </div>
 </div>
 <!-- 📊 차트와 구매자 박스 먼저 배치 -->
