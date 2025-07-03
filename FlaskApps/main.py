@@ -8,13 +8,21 @@ import pandas as pd
 from _datetime import datetime
 import requests
 
+
 # 플라스크 앱 초기화
 app = Flask(__name__)
 
 
+API_KEY = "f42c857e-d5bc-47e7-a59e-5d2de8725e9a"
+API_ID = "dudns5552"
+BASE_URL = "http://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
 
-
-
+ITEMS = {
+    "양파": {"category": "200", "code": "245"},
+    "마늘": {"category": "200", "code": "248"},
+    "딸기": {"category": "200", "code": "226"},
+    "복숭아": {"category": "400", "code": "413"}
+}
 
 
 
@@ -116,6 +124,100 @@ def root():
             'humidity': monthly_avg['평균 상대습도(%)'].tolist(),
             'sunshine': monthly_avg['합계 일조시간(hr)'].tolist()
         }
+    results = {}
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    for name, info in ITEMS.items():
+        params = {
+            "p_cert_key": API_KEY,
+            "p_cert_id": API_ID,
+            "p_returntype": "json",
+            "p_product_cls_code": "01",
+            "p_item_category_code": info["category"],
+            "p_country_code": "2401",
+            "p_regday": today,
+            "p_convert_kg_yn": "N"
+        }
+
+        try:
+            response = requests.get(BASE_URL, params=params, timeout=10)
+            data = response.json()
+
+            # ✅ JSON 내부 구조에 맞게 수정
+            items = data.get("data", {}).get("item", [])
+
+            for item in items:
+                if item.get("item_code") == info["code"] and item.get("rank") == "상품":
+
+                    # ✅ 쉼표 제거 후 안전하게 float 변환
+                    def to_float(val):
+                        try:
+                            val = val.strip().replace(",", "")
+                            return float(val) if val not in ["", "-"] else None
+                        except:
+                            return None
+
+                    price_today = to_float(item.get("dpr1", ""))
+                    price_yesterday = to_float(item.get("dpr2", ""))
+                    price_week = to_float(item.get("dpr3", ""))
+                    price_normal = to_float(item.get("dpr7", ""))
+                    actual_price = price_today if price_today is not None else price_yesterday
+
+                    is_fruit = name in ["복숭아", "딸기"]
+                    is_vegetable = name in ["양파", "마늘"]
+
+                    # ➕ 과일: 오늘/어제 모두 없으면 수확철 아님
+                    if is_fruit and actual_price is None:
+                        results[name] = None
+                        break
+
+                    # ➕ 채소: 하나라도 있으면 비교
+                    if is_vegetable and actual_price is not None:
+                        if price_week and price_normal:
+                            diff_normal = round(((actual_price - price_normal) / price_normal) * 100, 1)
+                            diff_week = round(((actual_price - price_week) / price_week) * 100, 1)
+
+                            results[name] = {
+                                "prices": {
+                                    "평년": price_normal,
+                                    "1주일전": price_week,
+                                    "오늘": actual_price
+                                },
+                                "percent": {
+                                    "평년": diff_normal,
+                                    "1주일전": diff_week
+                                }
+                            }
+                        else:
+                            results[name] = None
+                        break
+
+                    # ➕ 과일: 가격 비교 가능하면 계산
+                    if is_fruit and actual_price is not None and price_week and price_normal:
+                        diff_normal = round(((actual_price - price_normal) / price_normal) * 100, 1)
+                        diff_week = round(((actual_price - price_week) / price_week) * 100, 1)
+
+                        results[name] = {
+                            "prices": {
+                                "평년": price_normal,
+                                "1주일전": price_week,
+                                "오늘": actual_price
+                            },
+                            "percent": {
+                                "평년": diff_normal,
+                                "1주일전": diff_week
+                            }
+                        }
+                        break
+
+            # 결과가 생성되지 않은 품목은 None 처리
+            if name not in results:
+                results[name] = None
+
+        except Exception as e:
+            results[name] = None
+            print(f"[❌ ERROR] {name} API 처리 중 예외 발생: {e}")
+
 
     # 📌 템플릿으로 모든 데이터 전달
     return render_template('main_dashboard.html',
@@ -132,7 +234,9 @@ def root():
                            price_peach=price_peach,
                            production_price_data=production_price_data,
                            weather_data_by_year=weather_data_by_year,
-                           default_weather_year=2023)
+                           default_weather_year=2023,
+                           results=results)
+
 
 @app.route('/visual')
 def show_visual():
@@ -153,17 +257,6 @@ def page_not_found(error):
     return render_template('404.html'), 404
 
 #------------------------------------------------가격 동향 페이지 추가---------------------------------------
-
-ITEMS = {
-    "양파": {"category": "200", "code": "245"},
-    "마늘": {"category": "200", "code": "248"},
-    "딸기": {"category": "200", "code": "226"},
-    "복숭아": {"category": "400", "code": "413"}
-}
-
-API_KEY = "f42c857e-d5bc-47e7-a59e-5d2de8725e9a"
-API_ID = "dudns5552"
-BASE_URL = "http://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
 
 @app.route("/price")
 def price():
