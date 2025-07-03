@@ -21,21 +21,9 @@
           text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
-        .summary-section, .bottom-section {
+        .bottom-section {
           display: grid;
           gap: 30px;
-        }
-
-        .summary-section {
-          background: white;
-          min-height: 220px;
-          border-radius: 20px;
-          box-shadow: 0 10px 25px rgba(255,143,0,0.12);
-          border: 1px solid #FFE0B2;
-          margin: 60px auto;
-          padding: 24px;
-          gap: 16px;                /* 구역 사이 간격 */
-          align-items: stretc
         }
 
         .chart-wrapper {
@@ -51,7 +39,7 @@
           align-items: center;
           justify-content: center;
           gap: 10px;
-          margin-bottom: 20px;
+          margin: 50px 0;
         }
 
     .card-title {
@@ -221,88 +209,105 @@
         }
         .chart-price{
             margin-bottom: 50px;
+            height: 80%;
+            width: 63%;
+        }
+        .top-section{
+            height: 500px;
+            justify-content: space-between;
+            display: flex;
+        }
+        .summary-section {
+          margin-bottom: 50px;
+          height: 80%;
+          width: 30%;
+        }
+        .card-section{
+            padding-left: 10px;
         }
     </style>
 </head>
 <body>
 <h1>농산물 통합 관리자 대시보드</h1>
 
-<!-- 📈 상단 요약 카드들 (아래로 위치 변경됨) -->
-<div class="chart-area styled-box summary-section">
-    <div class="card-title">2026년 가격 / 생산량 예측</div>
-    <div class="card-section">
-        {% for card in cards %}
-        <div class="card">
-            <span style="color: #E65100; font-weight: bold; font-size: 1.1em">{{ card.name }} 정보</span> 생산량: {{ card.production }} 📈 평균 가격: {{ card.price }}
+<div class="top-section">
+    <!-- 📈 상단 요약 카드들 (아래로 위치 변경됨) -->
+    <div class="summary-section styled-box">
+        <div class="card-title">2026년 가격 / 생산량 예측</div>
+        <div class="card-section">
+            {% for card in cards %}
+            <div class="card">
+                <span style="color: #E65100; font-weight: bold; font-size: 1.1em">{{ card.name }} 정보</span> 생산량: {{ card.production }} 📈 평균 가격: {{ card.price }}
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-</div>
-<div class="chart-price">
-    <div class="chart-area styled-box ">
-        <div class="card-title">📊 농산물 가격 비교</div>
-        <div class="today-section">
-    {% for item, data in results.items() %}
-        <div class="chart-box">
-            <h2 style="color: #E65100;">{{ item }}</h2>
-            {% if data %}
-                <canvas id="chart_{{ loop.index }}"></canvas>
-                <div class="chart-area">
-                    평년 대비 {{ data.percent.평년 | abs }}%
-                    {{ '비쌉니다' if data.percent.평년 > 0 else '쌉니다' }}.<br>
-                    1주일 전 대비 {{ data.percent["1주일전"] | abs }}%
-                    {{ '비쌉니다' if data.percent["1주일전"] > 0 else '쌉니다' }}.
-                </div>
-                <script>
-                    const ctx_{{ loop.index }} = document.getElementById("chart_{{ loop.index }}").getContext('2d');
-                    new Chart(ctx_{{ loop.index }}, {
-                        type: 'bar',
-                        data: {
-                            labels: ['평년', '1주일전', '오늘'],
-                            datasets: [{
-                                label: '가격 (원)',
-                                data: [
-                                    {{ data.prices.평년 }},
-                                    {{ data.prices["1주일전"] }},
-                                    {{ data.prices.오늘 }}
-                                ],
-                                backgroundColor: ['#ff9800', '#E65100', '#056676']
-                            }]
-                        },
-                        options: {
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: { enabled: true },
-                                datalabels: {
-                                    anchor: 'end',
-                                    align: 'end',
-                                    formatter: function(value) {
-                                        return value + '원';
-                                    }
-                                }
+    <div class="chart-price styled-box">
+        <div class="chart-area">
+            <div class="card-title">📊 농산물 가격 비교</div>
+            <div class="today-section">
+        {% for item, data in results.items() %}
+            <div class="chart-box">
+                <h2 style="color: #E65100;">{{ item }}</h2>
+                {% if data %}
+                    <canvas id="chart_{{ loop.index }}" style="height: 170px; margin-top: 40px;"></canvas>
+                    <div class="chart-area">
+                        평년 대비 {{ data.percent.평년 | abs }}%
+                        {{ '비쌉니다' if data.percent.평년 > 0 else '쌉니다' }}.<br>
+                        1주일 전 대비 {{ data.percent["1주일전"] | abs }}%
+                        {{ '비쌉니다' if data.percent["1주일전"] > 0 else '쌉니다' }}.
+                    </div>
+                    <script>
+                        const ctx_{{ loop.index }} = document.getElementById("chart_{{ loop.index }}").getContext('2d');
+                        new Chart(ctx_{{ loop.index }}, {
+                            type: 'bar',
+                            data: {
+                                labels: ['평년', '1주일전', '오늘'],
+                                datasets: [{
+                                    label: '가격 (원)',
+                                    data: [
+                                        {{ data.prices.평년 }},
+                                        {{ data.prices["1주일전"] }},
+                                        {{ data.prices.오늘 }}
+                                    ],
+                                    backgroundColor: ['#ff9800', '#E65100', '#056676']
+                                }]
                             },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: '가격 (원)'
+                            options: {
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: { enabled: true },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'end',
+                                        formatter: function(value) {
+                                            return value + '원';
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: '가격 (원)'
+                                        }
                                     }
                                 }
                             }
-                        }
-                    });
-                </script>
-            {% else %}
-                {% if item == '딸기' %}
-                <img src="../static/picture/straw.jpg" alt="딸기 이미지" style="width: 80%; max-height: 150px; margin-top: 10px;">
-                {% elif item == '복숭아' %}
-                <img src="../static/picture/peach.jfif" alt="복숭아 이미지" style="width: 80%; max-height: 150px; margin-top: 10px;">
+                        });
+                    </script>
+                {% else %}
+                    {% if item == '딸기' %}
+                    <img src="../static/picture/straw.jpg" alt="딸기 이미지" style="width: 80%; max-height: 150px; margin-top: 10px;">
+                    {% elif item == '복숭아' %}
+                    <img src="../static/picture/peach.jfif" alt="복숭아 이미지" style="width: 80%; max-height: 150px; margin-top: 10px;">
+                    {% endif %}
+                <p>아직 수확철이 아니에용~ 😢</p>
                 {% endif %}
-            <p>아직 수확철이 아니에용~ 😢</p>
-            {% endif %}
-        </div>
-    {% endfor %}
+            </div>
+        {% endfor %}
+            </div>
         </div>
     </div>
 </div>
